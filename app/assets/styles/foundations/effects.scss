@@ -1,0 +1,31 @@
+@use "../mixins" as *;
+@use "../vars" as *;
+
+/**
+ * EFFECTS SYSTEM
+ *
+ * This file defines visual effects using CSS custom properties.
+ * Includes border radius, shadows, transitions, and other styling effects.
+ *
+ * BORDER RADIUS:
+ * - Uses the same scale as units for consistency
+ * - Ranges from subtle to pronounced rounding
+ *
+ * SHADOWS & EFFECTS:
+ * - Can be expanded to include box-shadows, filters, transforms
+ * - Maintains consistent visual language across components
+ *
+ */
+
+:root {
+  // border radius scale
+  --radii-none: 0;
+  --radii-tiny: var(--unit-tiniest);
+  --radii-small: var(--unit-smaller);
+  --radii-big: var(--unit-big);
+  --radii-round: 50%;
+  --radii-pill: 100vw;
+
+  // default border radius
+  --radii: var(--radii-small);
+}

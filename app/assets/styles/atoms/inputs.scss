@@ -1,0 +1,201 @@
+/**
+ * INPUT COMPONENTS
+ *
+ * This file defines styling for form input elements and their variants.
+ * Includes custom properties for consistent theming and state management.
+ *
+ * COMPONENTS:
+ * - Base input styles for text inputs, textareas, selects
+ * - Input groups and labels
+ * - Dropdown/select components with custom styling
+ * - Focus, hover, and disabled states
+ *
+ * SIZES:
+ * - Small: Compact forms
+ * - Medium: Standard size (default)
+ * - Large: Prominent form elements
+ *
+ * Uses color-mix() for dynamic background and border colors
+ * based on the current color theme.
+ */
+
+:root {
+  --input-background: var(--background-secondary);
+  --input-background-hover: color-mix(
+    in srgb,
+    var(--background-tertiary) 30%,
+    var(--background-secondary)
+  );
+
+  --input-border: var(--background-tertiary);
+  --input-border-hover: var(--background-tertiary);
+  --input-border-focus: var(--background-tertiary);
+}
+
+.input-label,
+.select-container .select-size {
+  cursor: pointer !important;
+}
+
+.input-group {
+  display: block;
+  position: relative;
+}
+
+.input-base {
+  appearance: none;
+  width: 100%;
+  border-radius: var(--radii-tiny);
+  border: 1px solid;
+  color: var(--foreground-secondary);
+  transition: color var(--transition-fast),
+    background-color var(--transition-fast);
+  background-color: var(--input-background);
+  border-color: var(--input-border);
+  outline: none;
+  box-shadow: none;
+  color-scheme: dark;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--input-background-hover);
+    border-color: var(--input-border-hover);
+    color: var(--foreground-primary);
+  }
+
+  &:focus {
+    background-color: var(--input-background-hover);
+    border-color: var(--background-quaternary);
+    color: var(--foreground-primary);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 5px var(--interactive-primary);
+    outline: 4px solid var(--background-primary);
+  }
+
+  &:focus:not(:focus-visible) {
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  &:disabled {
+    background-color: var(--background-primary);
+
+    &:hover {
+      background-color: var(--background-primary);
+    }
+  }
+
+  &::placeholder {
+    color: var(--foreground-secondary);
+  }
+
+  &.is-open {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+.input-small {
+  padding: var(--unit-tinier) var(--unit-tiny);
+}
+
+.input-medium {
+  padding: var(--unit-tiny) var(--unit-smallest);
+}
+
+.input-large {
+  padding: var(--unit-tiny) var(--unit-smallest);
+}
+
+.input-label {
+  color: var(--foreground-primary);
+}
+
+/* Dropdown styles */
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: -1px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--input-border-focus);
+  border-radius: var(--radii-tiny);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+
+  color-scheme: dark;
+}
+
+.option {
+  --background-quaternary: color-mix(
+    in srgb,
+    var(--background-primary),
+    var(--foreground-primary) 5%
+  );
+
+  cursor: pointer;
+  border-bottom: 1px solid var(--input-border-focus);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  color: var(--foreground-secondary);
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--interactive-primary);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover,
+  &.is-highlighted {
+    color: var(--foreground-primary);
+    background-color: var(--background-quaternary);
+
+    .check-icon {
+      color: inherit;
+    }
+  }
+
+  &.is-selected {
+    background-color: var(--input-border-focus);
+
+    color: var(--foreground-primary);
+    padding-right: var(--unit-tiny) !important;
+
+    .check-icon {
+      color: inherit;
+    }
+  }
+}
+
+.check-icon {
+  color: var(--foreground-secondary);
+  flex-shrink: 0;
+}
+
+/* No results message */
+.no-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: -1px;
+  padding: var(--tiny) var(--smallest);
+  background-color: var(--background-primary);
+  border: 1px solid var(--input-border-focus);
+  border-radius: var(--radii-tinier);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  color: var(--foreground-secondary);
+  font-size: 0.875rem;
+}

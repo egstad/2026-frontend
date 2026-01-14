@@ -1,0 +1,103 @@
+@use "./assets/styles/_vars" as *;
+@use "sass:string";
+@use "sass:math";
+
+/**
+ * SCSS MIXINS & FUNCTIONS
+ *
+ * This file provides reusable SCSS mixins and functions for the design system.
+ * Includes responsive breakpoint mixins, utility functions, and layout helpers.
+ *
+ * BREAKPOINT MIXINS:
+ * - mobile, phablet, tablet, laptop, desktop, ultrawide
+ * - Mobile-first approach (min-width media queries)
+ *
+ * UTILITY FUNCTIONS:
+ * - calc-vw(): Convert pixels to viewport width for fluid scaling
+ * - strip-units(): Remove units from numbers for calculations
+ * - calc-leading(): Calculate line-height ratios
+ *
+ * LAYOUT MIXINS:
+ * - fluidScale(): Apply fluid typography scaling
+ * - fluid(): Apply fluid sizing to any property
+ * - sr-only(): Screen reader only content
+ */
+
+@mixin mobile {
+  @media (min-width: #{$mobile}) {
+    @content;
+  }
+}
+
+@mixin phablet {
+  @media (min-width: #{$phablet}) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: #{$tablet}) {
+    @content;
+  }
+}
+
+@mixin laptop {
+  @media (min-width: #{$laptop}) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: #{$desktop}) {
+    @content;
+  }
+}
+
+@mixin ultrawide {
+  @media (min-width: #{$ultrawide}) {
+    @content;
+  }
+}
+
+@function px-from-percent($percentage, $width: 100) {
+  @return ($percentage * 0.01) * $width;
+}
+
+@function strip-units($number) {
+  @return math.div($number, $number * 0 + 1);
+}
+
+@function calc-vw($pixel, $container-size: $ultrawide) {
+  @return math.div(strip-units($pixel), strip-units($container-size)) * 100 +
+    0vw;
+}
+
+@function calc-leading($leading-in-pixels, $type-size) {
+  @return math.div(strip-units($leading-in-pixels), strip-units($type-size));
+}
+
+@mixin fluidScale(
+  $sizeInPixels,
+  $baselineInPixels,
+  $breakpointInPixels: $ultrawide
+) {
+  @media (min-width: $breakpointInPixels) {
+    font-size: calc-vw($sizeInPixels, $breakpointInPixels);
+    line-height: calc-leading($baselineInPixels, $sizeInPixels);
+  }
+}
+
+@mixin fluid($property, $sizeInPixels, $breakpointInPixels: $ultrawide) {
+  @media (min-width: $breakpointInPixels) {
+    #{$property}: calc-vw($sizeInPixels, $breakpointInPixels);
+  }
+}
+
+@mixin sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+}

@@ -1,0 +1,188 @@
+@use "../mixins" as *;
+@use "../vars" as *;
+
+/**
+ * TYPE SYSTEM
+ *
+ * This file defines the typography scale using CSS custom properties.
+ * Establishes consistent font sizes and line heights across the design system.
+ *
+ * TYPOGRAPHY SCALE:
+ * - Micro levels: For small labels and captions
+ * - Caption levels: For supporting text and metadata
+ * - Body levels: For main content and reading text
+ * - Headline levels: For titles and prominent text
+ *
+ * Each level includes both size and leading (line-height) for optimal readability.
+ * Values are designed to work with fluid scaling on larger viewports.
+ */
+
+:root {
+  // micro 2
+  --t-micro-2-size: 8px;
+  --t-micro-2-leading: 12px;
+
+  // micro 1
+  --t-micro-1-size: 11px;
+  --t-micro-1-leading: 16px;
+
+  // caption 2
+  --t-caption-2-size: 12px;
+  --t-caption-2-leading: 16px;
+
+  // caption 1
+  --t-caption-1-size: 14px;
+  --t-caption-1-leading: 20px;
+
+  // body 2
+  --t-body-2-size: 19px;
+  --t-body-2-leading: 32px;
+
+  // body 1
+  --t-body-1-size: 24px;
+  --t-body-1-leading: 32px;
+
+  // headline 2
+  --t-headline-2-size: 35px;
+  --t-headline-2-leading: 40px;
+
+  // headline 1
+  --t-headline-1-size: 52px;
+  --t-headline-1-leading: 56px;
+}
+
+[class^="t-headline"] {
+  text-wrap: balance;
+}
+
+[class^="t-"] {
+  max-width: 100ch;
+
+  code {
+    font-family: monospace;
+    font-size: 75%;
+    padding: 0.3em 0.6em;
+    border-radius: var(--radii-tiny);
+    border: 1px solid var(--border-primary);
+    color: var(--foreground-primary);
+  }
+}
+
+.t-micro-2 {
+  font-size: var(--t-micro-2-size);
+  line-height: var(--t-micro-2-leading);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  word-spacing: 0.01em;
+  font-variation-settings: "wght" 400;
+
+  // note: you'll need to confirm these values match :root vars above
+  // params: (size, line-height, when fluid scale kicks in)
+  @include fluidScale(8px, 12px);
+}
+
+.t-micro-1 {
+  font-size: var(--t-micro-1-size);
+  line-height: var(--t-micro-1-leading);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variation-settings: "wght" 400;
+
+  // note: you'll need to confirm these values match :root vars above
+  // params: (size, line-height, when fluid scale kicks in)
+  @include fluidScale(11px, 16px);
+}
+
+.t-caption-2 {
+  font-size: var(--t-caption-2-size);
+  line-height: var(--t-caption-2-leading);
+  letter-spacing: 0.025em;
+  font-variation-settings: "wght" 400;
+
+  // note: you'll need to confirm these values match :root vars above
+  // params: (size, line-height, when fluid scale kicks in)
+  @include fluidScale(12px, 16px);
+}
+
+.t-caption-1 {
+  font-size: var(--t-caption-1-size);
+  line-height: var(--t-caption-1-leading);
+  letter-spacing: 0.0125em;
+  font-variation-settings: "wght" 420;
+
+  // note: you'll need to confirm these values match :root vars above
+  // params: (size, line-height, when fluid scale kicks in)
+  @include fluidScale(14px, 20px);
+}
+
+.t-body-2,
+.t-normal {
+  font-size: calc(var(--t-body-2-size) - 3.5px);
+  line-height: calc(var(--t-body-2-leading) - 8px);
+  letter-spacing: 0.01em;
+  font-variation-settings: "wght" 400;
+
+  // --t-body-2-size: 19px;
+  // --t-body-2-leading: 32px;
+  @include laptop {
+    font-size: var(--t-body-2-size);
+    line-height: var(--t-body-2-leading);
+  }
+
+  // note: you'll need to confirm these values match :root vars above
+  // params: (size, line-height, when fluid scale kicks in)
+  @include fluidScale(16px, 24px);
+}
+
+.t-body-1 {
+  font-size: var(--t-body-1-size);
+  line-height: var(--t-body-1-leading);
+  letter-spacing: -0.007em;
+  padding-top: var(--unit-tiniest);
+  padding-bottom: var(--unit-tiniest);
+
+  font-variation-settings: "wght" 350;
+
+  // note: you'll need to confirm these values match :root vars above
+  // params: (size, line-height, when fluid scale kicks in)
+  @include fluidScale(24px, 32px);
+}
+
+.t-headline-2 {
+  font-size: var(--t-headline-2-size);
+  line-height: var(--t-headline-2-leading);
+  letter-spacing: -0.01em;
+  padding-top: var(--unit-tiniest);
+  padding-bottom: var(--unit-tiniest);
+  font-variation-settings: "wght" 350;
+
+  // note: you'll need to confirm these values match :root vars above
+  // params: (size, line-height, when fluid scale kicks in)
+  @include fluidScale(35px, 40px);
+}
+
+.t-headline-1 {
+  font-size: var(--t-headline-1-size);
+  line-height: var(--t-headline-1-leading);
+  letter-spacing: -0.04em;
+  padding-top: var(--unit-tiniest);
+  padding-bottom: var(--unit-tiniest);
+  font-variation-settings: "wght" 350;
+
+  // note: you'll need to confirm these values match :root vars above
+  // params: (size, line-height, when fluid scale kicks in)
+  @include fluidScale(52px, 56px);
+}
+
+.t-dim {
+  color: var(--foreground-secondary);
+}
+
+.t-dimmer {
+  color: var(--foreground-tertiary);
+}
+
+@font-face {
+  src: url("~/assets/fonts/DBC-MetaphorGX.ttf");
+  font-family: "DBC Metaphor";
+}

@@ -1,0 +1,20 @@
+/**
+ * GLOBAL STYLES ENTRY POINT
+ *
+ * This file consolidates all design system styles for Nuxt.js consumption.
+ * All @forward statements are automatically included via Nuxt's
+ * vite.css.preprocessorOptions.scss.additionalData configuration.
+ *
+ * This makes all design tokens and component styles available throughout
+ * the application without manual imports in individual components.
+ */
+@forward "vars";
+@forward "mixins";
+
+@forward "foundations/reset";
+@forward "foundations/units";
+@forward "foundations/color";
+@forward "foundations/layout";
+@forward "foundations/typography";
+@forward "foundations/effects";
+@forward "foundations/motion";

@@ -1,0 +1,12 @@
+<template>
+  <Column
+    span-tablet="10"
+    start-tablet="2"
+    span-laptop="8"
+    start-laptop="3"
+    span-desktop="6"
+    start-desktop="4"
+  >
+    <slot></slot>
+  </Column>
+</template>

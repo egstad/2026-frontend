@@ -1,0 +1,149 @@
+/**
+ * BUTTON COMPONENTS
+ *
+ * This file defines styling for all button variants and states.
+ * Uses design system tokens for consistent spacing, colors, and motion.
+ *
+ * VARIANTS:
+ * - Primary: High emphasis actions
+ * - Secondary: Medium emphasis actions
+ * - Ghost: Low emphasis actions
+ *
+ * SIZES:
+ * - Small: Compact interfaces
+ * - Medium: Standard size (default)
+ * - Large: Prominent actions
+ *
+ * STATES:
+ * - Default, hover, focus, disabled, loading
+ */
+
+.button {
+  width: fit-content;
+  border-radius: var(--unit-tiniest);
+  border: 1px solid transparent;
+  transition: color var(--transition-fast),
+    background-color var(--transition-fast), border-color var(--transition-fast);
+  outline: 0;
+  cursor: pointer;
+
+  &-small {
+    padding: var(--unit-tiniest) var(--unit-tinier);
+  }
+
+  &-medium {
+    padding: var(--unit-tinier) var(--unit-tiny);
+  }
+
+  &-large {
+    padding: var(--unit-tiny) var(--unit-smallest);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    &:hover {
+      background-color: var(--foreground-secondary);
+    }
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 5px var(--interactive-primary);
+    outline: 4px solid var(--background-primary);
+  }
+
+  &:active {
+    span {
+      opacity: 0.6;
+    }
+  }
+
+  /* wrapper for icon and text if has icon */
+  span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    column-gap: var(--unit-tinier);
+    transition: opacity var(--transition-fast);
+
+    .icon {
+      &.small {
+        width: 12px;
+      }
+    }
+  }
+}
+
+.button--primary {
+  color: var(--background-primary);
+  background-color: var(--foreground-secondary);
+
+  &:hover {
+    color: var(--background-primary);
+    background-color: var(--foreground-primary);
+  }
+}
+
+.button--secondary {
+  --background: var(--background-tertiary);
+  --background-hover: color-mix(
+    in srgb,
+    var(--background-tertiary) 90%,
+    var(--foreground-primary)
+  );
+
+  color: var(--foreground-secondary);
+  background-color: var(--background);
+
+  &:hover {
+    color: var(--foreground-primary);
+    background-color: var(--background-hover);
+  }
+}
+
+.button--ghost {
+  background-color: var(--background-primary);
+  color: var(--foreground-secondary);
+  border-color: var(--background-tertiary);
+
+  &:hover {
+    background-color: var(--input-background);
+    border-color: var(--foreground-tertiary);
+    color: var(--foreground-primary);
+  }
+}
+
+.button--loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--unit-tinier);
+  position: relative;
+  background-color: var(--input-background);
+  color: var(--foreground-primary);
+
+  &:hover {
+    background-color: var(--input-background) !important;
+    color: var(--foreground-primary);
+  }
+}
+
+.button__loader {
+  // position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--foreground-secondary);
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  animation: button-loading 1s linear infinite;
+}
+
+@keyframes button-loading {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

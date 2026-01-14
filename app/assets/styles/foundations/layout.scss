@@ -1,0 +1,40 @@
+@use "../mixins" as *;
+@use "../vars" as *;
+
+/**
+ * LAYOUT SYSTEM
+ *
+ * This file defines layout-related CSS custom properties for consistent spacing
+ * and positioning throughout the design system.
+ *
+ * CURRENT IMPLEMENTATION:
+ * - Grid margins: Responsive scaling with clamp function for fluid margins
+ * - Grid gaps: Consistent spacing between grid items
+ * - Desktop overrides: Specific values for larger viewports
+ */
+
+:root {
+  --grid-margin: clamp(var(--unit-smaller), 4vw, var(--unit-big));
+  --grid-gap: var(--unit-tinier);
+
+  @include desktop {
+    --grid-margin: var(--unit-bigger);
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  padding-inline: var(--grid-margin);
+  column-gap: var(--grid-gap);
+  width: 100%;
+
+  .grid {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+// .grid--full {
+//   padding-inline: 0;
+// }

@@ -1,0 +1,191 @@
+@use "../mixins" as *;
+@use "../vars" as *;
+
+/**
+ * UNITS
+ *
+ * This file defines a consistent spacing and sizing scale using CSS custom properties.
+ * These units serve multiple purposes throughout the design system:
+ *
+ * SPACING (PADDING & MARGIN):
+ * - Use these units for consistent spacing between elements
+ * - Example: padding: var(--unit-small); margin-bottom: var(--unit-bigger);
+ *
+ * ELEMENT DIMENSIONS:
+ * - Apply to width, height, gap, and other dimensional properties
+ * - Example: width: var(--unit-huge);
+ *
+ * RESPONSIVE SCALING:
+ * - Base values (mobile-first) are fixed pixel values
+ * - Desktop values scale fluidly using viewport width calculations
+ * - Ensures consistent proportions across all screen sizes
+ *
+ * NAMING CONVENTION:
+ * - Scale progresses from small to large using intuitive sizing names
+ * - Pattern: tiniest → tinier → tiny → smallest → smaller → small → big → bigger → biggest → huge → huger → hugest
+ * - Choose the unit that best fits your design intent and spacing needs
+ */
+
+:root {
+  --unit-tiniest: 4px;
+  --unit-tinier: 8px;
+  --unit-tiny: 12px;
+  --unit-smallest: 16px;
+  --unit-smaller: 24px;
+  --unit-small: 32px;
+  --unit-big: 48px;
+  --unit-bigger: 64px;
+  --unit-biggest: 96px;
+  --unit-huge: 128px;
+  --unit-huger: 192px;
+  --unit-hugest: 256px;
+
+  @include desktop {
+    --unit-tiniest: #{calc-vw(4px, $ultrawide)};
+    --unit-tinier: #{calc-vw(8px, $ultrawide)};
+    --unit-tiny: #{calc-vw(12px, $ultrawide)};
+    --unit-smallest: #{calc-vw(16px, $ultrawide)};
+    --unit-smaller: #{calc-vw(24px, $ultrawide)};
+    --unit-small: #{calc-vw(32px, $ultrawide)};
+    --unit-big: #{calc-vw(48px, $ultrawide)};
+    --unit-bigger: #{calc-vw(64px, $ultrawide)};
+    --unit-biggest: #{calc-vw(96px, $ultrawide)};
+    --unit-huge: #{calc-vw(128px, $ultrawide)};
+    --unit-huger: #{calc-vw(192px, $ultrawide)};
+    --unit-hugest: #{calc-vw(256px, $ultrawide)};
+  }
+}
+
+/**
+ * SPACING UTILITY CLASSES
+ *
+ * CSS utility classes for padding and margin using the unit system.
+ * Follows a consistent naming pattern similar to Tailwind CSS.
+ *
+ * NAMING CONVENTION:
+ * - p{side?}-{size} for padding
+ * - m{side?}-{size} for margin
+ * - Sides: t(top), r(right), b(bottom), l(left), x(horizontal), y(vertical)
+ * - Sizes: tiniest, tinier, tiny, smallest, smaller, small, big, bigger, biggest, huge, huger, hugest
+ *
+ * EXAMPLES:
+ * - .pt-small = padding-top: var(--unit-small)
+ * - .mx-big = margin-left: var(--unit-big); margin-right: var(--unit-big)
+ * - .p-tiny = padding: var(--unit-tiny)
+ */
+
+// Generate utility classes for each unit size
+@each $size in tiniest, tinier, tiny, smallest, smaller, small, big, bigger,
+  biggest, huge, huger, hugest
+{
+  // Padding utilities
+  .p-#{$size} {
+    padding: var(--unit-#{$size});
+  }
+  .pt-#{$size} {
+    padding-top: var(--unit-#{$size});
+  }
+  .pr-#{$size} {
+    padding-right: var(--unit-#{$size});
+  }
+  .pb-#{$size} {
+    padding-bottom: var(--unit-#{$size});
+  }
+  .pl-#{$size} {
+    padding-left: var(--unit-#{$size});
+  }
+  .px-#{$size} {
+    padding-left: var(--unit-#{$size});
+    padding-right: var(--unit-#{$size});
+  }
+  .py-#{$size} {
+    padding-top: var(--unit-#{$size});
+    padding-bottom: var(--unit-#{$size});
+  }
+
+  // Margin utilities
+  .m-#{$size} {
+    margin: var(--unit-#{$size});
+  }
+  .mt-#{$size} {
+    margin-top: var(--unit-#{$size});
+  }
+  .mr-#{$size} {
+    margin-right: var(--unit-#{$size});
+  }
+  .mb-#{$size} {
+    margin-bottom: var(--unit-#{$size});
+  }
+  .ml-#{$size} {
+    margin-left: var(--unit-#{$size});
+  }
+  .mx-#{$size} {
+    margin-left: var(--unit-#{$size});
+    margin-right: var(--unit-#{$size});
+  }
+  .my-#{$size} {
+    margin-top: var(--unit-#{$size});
+    margin-bottom: var(--unit-#{$size});
+  }
+}
+
+// Special utility classes
+.p-0 {
+  padding: 0;
+}
+.m-0 {
+  margin: 0;
+}
+.mt-0 {
+  margin-top: 0;
+}
+.mr-0 {
+  margin-right: 0;
+}
+.mb-0 {
+  margin-bottom: 0;
+}
+.ml-0 {
+  margin-left: 0;
+}
+.mx-0 {
+  margin-left: 0;
+  margin-right: 0;
+}
+.my-0 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.pt-0 {
+  padding-top: 0;
+}
+.pr-0 {
+  padding-right: 0;
+}
+.pb-0 {
+  padding-bottom: 0;
+}
+.pl-0 {
+  padding-left: 0;
+}
+.px-0 {
+  padding-left: 0;
+  padding-right: 0;
+}
+.py-0 {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+// Auto margins for centering
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+.ml-auto {
+  margin-left: auto;
+}
+.mr-auto {
+  margin-right: auto;
+}

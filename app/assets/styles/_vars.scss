@@ -1,0 +1,17 @@
+/**
+ * SCSS VARIABLES
+ *
+ * This file defines SCSS variables used by mixins and functions.
+ * These are compile-time variables, different from CSS custom properties.
+ *
+ * BREAKPOINTS:
+ * Responsive breakpoint values used by media query mixins.
+ * Values progress from mobile-first to ultrawide displays.
+ */
+
+$mobile: 360px;
+$phablet: 500px;
+$tablet: 600px;
+$laptop: 900px;
+$desktop: 1200px;
+$ultrawide: 1440px;

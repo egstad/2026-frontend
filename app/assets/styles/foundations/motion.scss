@@ -1,0 +1,52 @@
+@use "../mixins" as *;
+@use "../vars" as *;
+
+/**
+ * MOTION SYSTEM
+ *
+ * This file defines motion-related CSS custom properties for consistent
+ * animations and transitions throughout the design system.
+ *
+ * DURATIONS:
+ * - Fast: Quick interactions and micro-feedback
+ * - Normal: Standard UI transitions
+ * - Slow: Attention-drawing animations
+ * - Slower: Complex state changes
+ *
+ * EASING FUNCTIONS:
+ * - Standard easing curves for different interaction types
+ * - Includes both subtle and expressive options
+ *
+ * ANIMATION PROPERTIES:
+ * - Common animation values for consistent motion language
+ */
+
+:root {
+  // transition durations
+  --instant: 0ms;
+  --fast: 150ms;
+  --normal: 250ms;
+  --slow: 350ms;
+  --slower: 500ms;
+
+  // easing functions
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-sharp: cubic-bezier(0.4, 0, 0.6, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  // default
+  --ease: var(--ease-in-out);
+
+  // common transitions
+  --transition-fast: var(--fast) var(--ease);
+  --transition-slow: var(--slow) var(--ease);
+  --transition: var(--normal) var(--ease);
+
+  // animation properties
+  --delay-none: 0ms;
+  --delay-short: 100ms;
+  --delay-medium: 200ms;
+  --delay-long: 300ms;
+}
