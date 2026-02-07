@@ -1,6 +1,17 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: ["@pinia/nuxt", "@nuxt/image"],
+  image: {
+    sanity: {
+      projectId: "p9yhyed1",
+      dataset: "production",
+    },
+  },
+  runtimeConfig: {
+    public: {
+      arenaAccessToken: "", // Auto-populated from NUXT_PUBLIC_ARENA_ACCESS_TOKEN
+    },
+  },
   plugins: [
     { src: "~/plugins/device/deviceInfo.ts", mode: "client" },
     { src: "~/plugins/device/deviceDimensions.ts", mode: "client" },
@@ -20,6 +31,7 @@ export default defineNuxtConfig({
       },
     },
   },
+  css: ["~/assets/styles/main.scss"],
   vite: {
     css: {
       preprocessorOptions: {

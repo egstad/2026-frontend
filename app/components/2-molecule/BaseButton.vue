@@ -62,7 +62,7 @@ const props = withDefaults(defineProps<Props>(), {
 const buttonClasses = computed(() => {
   switch (props.size) {
     case "small":
-      return "button-small t-micro-1";
+      return "button-small t-micro-2";
     case "large":
       return "button-large t-body-2";
     default:

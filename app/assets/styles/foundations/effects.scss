@@ -20,7 +20,7 @@
 :root {
   // border radius scale
   --radii-none: 0;
-  --radii-tiny: var(--unit-tiniest);
+  --radii-tiny: 2px;
   --radii-small: var(--unit-smaller);
   --radii-big: var(--unit-big);
   --radii-round: 50%;

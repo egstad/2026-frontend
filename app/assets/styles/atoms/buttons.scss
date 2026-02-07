@@ -22,9 +22,12 @@
   width: fit-content;
   border-radius: var(--unit-tiniest);
   border: 1px solid transparent;
-  transition: color var(--transition-fast),
-    background-color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
   outline: 0;
+  line-height: 0 !important;
   cursor: pointer;
 
   &-small {
@@ -32,11 +35,11 @@
   }
 
   &-medium {
-    padding: var(--unit-tinier) var(--unit-tiny);
+    padding: var(--unit-tiniest) var(--unit-tinier);
   }
 
   &-large {
-    padding: var(--unit-tiny) var(--unit-smallest);
+    padding: var(--unit-tinier) var(--unit-tiny);
   }
 
   &:disabled {

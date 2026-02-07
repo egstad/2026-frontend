@@ -1,32 +1,20 @@
 <template>
   <figure class="pic" :class="picClasses">
-    <!-- Use regular img for external/unoptimized images -->
-    <img
-      v-if="external"
-      ref="imageRef"
-      :src="src"
-      :alt="alt"
-      :width="width"
-      :height="height"
-      :loading="loading"
-      @load="onLoad"
-      @error="onError"
-      class="pic__image"
-    />
-
-    <!-- Use NuxtImg for local images that should be optimized -->
+    <!-- Sanity CDN images: NuxtImg with built-in Sanity provider.
+         Handles srcset generation, auto=format (avif/webp), quality,
+         and DPR selection natively via the sizes/srcset mechanism. -->
     <NuxtImg
-      v-else
+      v-if="sanityAssetPath"
       ref="imageRef"
-      :src="src"
+      provider="sanity"
+      :src="sanityAssetPath"
       :alt="alt"
       :width="width"
       :height="height"
-      :sizes="sizes"
+      :sizes="computedSizes"
       :placeholder="placeholder"
       :loading="loading"
       :quality="quality"
-      :format="format"
       :densities="densities"
       :preload="preload"
       @load="onLoad"
@@ -34,12 +22,41 @@
       class="pic__image"
     />
 
-    <!-- Loading state overlay -->
-    <div v-if="showLoading && isLoading" class="pic__loading">
-      <slot name="loading">
-        <div class="pic__spinner"></div>
-      </slot>
-    </div>
+    <!-- Other external images (non-Sanity) -->
+    <img
+      v-else-if="external"
+      ref="imageRef"
+      :src="src"
+      :srcset="srcset || undefined"
+      :sizes="srcset ? computedSizes || undefined : undefined"
+      :alt="alt"
+      :width="width"
+      :height="height"
+      :loading="loading"
+      @load="onLoad"
+      @error="onError"
+      class="pic__image"
+    />
+
+    <!-- Local images: NuxtImg default provider -->
+    <NuxtImg
+      v-else
+      ref="imageRef"
+      :src="src"
+      :alt="alt"
+      :width="width"
+      :height="height"
+      :sizes="computedSizes"
+      :placeholder="placeholder"
+      :loading="loading"
+      :quality="computedQuality"
+      :format="format"
+      :densities="densities"
+      :preload="preload"
+      @load="onLoad"
+      @error="onError"
+      class="pic__image"
+    />
 
     <!-- Error state overlay -->
     <div v-if="showError && hasError" class="pic__error">
@@ -51,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 
 const props = defineProps({
   src: {
@@ -74,6 +91,10 @@ const props = defineProps({
     type: [Number, String],
     default: undefined,
   },
+  srcset: {
+    type: String,
+    default: undefined,
+  },
   sizes: {
     type: String,
     default: undefined,
@@ -88,7 +109,7 @@ const props = defineProps({
   },
   quality: {
     type: Number,
-    default: 80,
+    default: undefined,
   },
   format: {
     type: String,
@@ -102,10 +123,6 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  showLoading: {
-    type: Boolean,
-    default: true,
-  },
   showError: {
     type: Boolean,
     default: true,
@@ -118,7 +135,9 @@ const props = defineProps({
 
 const emit = defineEmits(["load", "error"]);
 
-// State management
+// -------------------------
+// State
+// -------------------------
 const isLoading = ref(true);
 const hasError = ref(false);
 const isMounted = ref(false);
@@ -126,19 +145,69 @@ const imageRef = ref(null);
 const naturalWidth = ref(null);
 const naturalHeight = ref(null);
 
+// -------------------------
+// Sanity CDN detection
+// -------------------------
+
+/**
+ * Extract a Sanity asset reference ID from a full CDN URL.
+ * The NuxtImg Sanity provider uses @sanity/image-url internally,
+ * which expects the asset reference format:
+ *
+ *   URL filename: "abc123-800x600.jpg"
+ *   Asset ref ID: "image-abc123-800x600-jpg"
+ */
+const sanityAssetPath = computed(() => {
+  if (!props.src?.includes("cdn.sanity.io")) return null;
+  const pathWithoutParams = props.src.split("?")[0];
+  const segments = pathWithoutParams.split("/");
+  const filename = segments[segments.length - 1];
+  if (!filename) return null;
+
+  // Convert "hash-WxH.ext" → "image-hash-WxH-ext"
+  const lastDot = filename.lastIndexOf(".");
+  if (lastDot === -1) return null;
+  const name = filename.substring(0, lastDot);
+  const ext = filename.substring(lastDot + 1);
+  return `image-${name}-${ext}`;
+});
+
+// -------------------------
+// Responsive sizing
+// -------------------------
+
+/**
+ * NuxtImg needs its own breakpoint-based `sizes` format to generate
+ * proper srcset widths. Plain CSS "100vw" can't be resolved to pixels
+ * at build time, so NuxtImg falls back to 1px base width.
+ *
+ * NuxtImg format: "sm:100vw md:50vw lg:400px"
+ * → computes image width at each screen breakpoint
+ * → generates srcset entries at those widths
+ *
+ * Default: full viewport width at every breakpoint.
+ */
+const DEFAULT_SIZES = "sm:100vw md:100vw lg:100vw xl:100vw xxl:100vw";
+const computedSizes = computed(() => props.sizes || DEFAULT_SIZES);
+
+/** Quality for the local NuxtImg path. Explicit prop or 80 default. */
+const computedQuality = computed(() => props.quality ?? 80);
+
+// -------------------------
 // Event handlers
+// -------------------------
 const onLoad = (event) => {
   if (props.blockLoading) return;
 
-  // Set natural dimensions when image loads
-  if (imageRef.value) {
-    naturalWidth.value = imageRef.value.naturalWidth;
-    naturalHeight.value = imageRef.value.naturalHeight;
+  const imgEl = event.target;
+  if (imgEl) {
+    naturalWidth.value = imgEl.naturalWidth;
+    naturalHeight.value = imgEl.naturalHeight;
 
-    // If no width/height props provided, use natural dimensions
-    if (!props.width && !props.height && imageRef.value) {
-      imageRef.value.setAttribute("width", naturalWidth.value);
-      imageRef.value.setAttribute("height", naturalHeight.value);
+    // Set intrinsic dimensions if none provided (prevents layout shift)
+    if (!props.width && !props.height) {
+      imgEl.setAttribute("width", naturalWidth.value);
+      imgEl.setAttribute("height", naturalHeight.value);
     }
   }
 
@@ -154,62 +223,46 @@ const onError = (event) => {
   emit("error", event);
 };
 
-// Handle client-side mounting
+// -------------------------
+// Lifecycle
+// -------------------------
 onMounted(() => {
   isMounted.value = true;
 
-  // If blockLoading is true, keep in loading state
   if (props.blockLoading) {
     isLoading.value = true;
     hasError.value = false;
     return;
   }
 
-  // For external images, check if they're already loaded
-  if (props.external) {
-    const img = new Image();
-    img.onload = () => {
-      if (isMounted.value) {
-        // Set natural dimensions for external images too
-        naturalWidth.value = img.naturalWidth;
-        naturalHeight.value = img.naturalHeight;
-
-        // If no width/height props provided, use natural dimensions
-        if (!props.width && !props.height && imageRef.value) {
-          imageRef.value.setAttribute("width", naturalWidth.value);
-          imageRef.value.setAttribute("height", naturalHeight.value);
+  // Check if external image already loaded (SSR hydration case where
+  // the load event fires before Vue attaches listeners).
+  if (props.external && !sanityAssetPath.value && imageRef.value) {
+    const imgEl = imageRef.value;
+    if (imgEl.complete) {
+      if (imgEl.naturalWidth > 0) {
+        naturalWidth.value = imgEl.naturalWidth;
+        naturalHeight.value = imgEl.naturalHeight;
+        if (!props.width && !props.height) {
+          imgEl.setAttribute("width", naturalWidth.value);
+          imgEl.setAttribute("height", naturalHeight.value);
         }
-
         isLoading.value = false;
         hasError.value = false;
-      }
-    };
-    img.onerror = () => {
-      if (isMounted.value) {
+      } else {
         isLoading.value = false;
         hasError.value = true;
       }
-    };
-    img.src = props.src;
+    }
+    // If not complete, @load/@error events will fire naturally
   }
-});
-
-onUnmounted(() => {
-  isMounted.value = false;
 });
 
 // Computed classes
 const picClasses = computed(() => {
   const classes = [];
-
-  if (isLoading.value) {
-    classes.push("pic--loading");
-  }
-
-  if (hasError.value) {
-    classes.push("pic--error");
-  }
-
+  if (isLoading.value) classes.push("pic--loading");
+  if (hasError.value) classes.push("pic--error");
   return classes;
 });
 </script>
@@ -228,16 +281,11 @@ const picClasses = computed(() => {
   display: flex;
   transition: opacity var(--transition);
 
-  .pic--loading & {
-    opacity: 0;
-  }
-
   .pic--error & {
     opacity: 0.3;
   }
 }
 
-.pic__loading,
 .pic__error {
   position: absolute;
   top: 0;
@@ -250,26 +298,8 @@ const picClasses = computed(() => {
   background: var(--background-tertiary);
 }
 
-.pic__spinner {
-  width: 16px;
-  height: 16px;
-  border: 1px solid var(--foreground-secondary);
-  border-top: 2px solid var(--foreground-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
 .pic__error-message {
   color: var(--foreground-secondary);
   text-align: center;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
 }
 </style>

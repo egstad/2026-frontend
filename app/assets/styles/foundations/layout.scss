@@ -14,12 +14,9 @@
  */
 
 :root {
-  --grid-margin: clamp(var(--unit-smaller), 4vw, var(--unit-big));
+  // --grid-margin: clamp(var(--unit-smaller), 4vw, var(--unit-big));
+  --grid-margin: var(--unit-tinier);
   --grid-gap: var(--unit-tinier);
-
-  @include desktop {
-    --grid-margin: var(--unit-bigger);
-  }
 }
 
 .grid {

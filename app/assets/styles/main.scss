@@ -1,0 +1,14 @@
+/**
+ * MAIN STYLESHEET
+ * 
+ * This file includes all foundation styles that should be applied globally.
+ * It's imported via nuxt.config.ts css array.
+ */
+
+@use 'foundations/reset';
+@use 'foundations/units';
+@use 'foundations/color';
+@use 'foundations/layout';
+@use 'foundations/typography';
+@use 'foundations/effects';
+@use 'foundations/motion';

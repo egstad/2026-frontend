@@ -14,15 +14,40 @@
         <Text>Vid Component</Text>
         <Space size="tinier" />
         <Text size="body-2" color="dim">
-          The Vid component provides optimized video playback with built-in
-          loading and error states. It supports various playback modes and
-          controls for different use cases.
+          The Vid component provides optimized video playback via Mux HLS
+          streaming (with Safari native fallback) or direct src for local
+          files. It includes adaptive bitrate, lazy loading via
+          IntersectionObserver, automatic viewport-based pause/resume,
+          subtitle/caption support, audio detection, and preset-based
+          configuration.
         </Text>
+
+        <Text size="micro-1" class="mt-big">Mux Playback</Text>
+        <Text color="dim" class="mt-tinier mb-smallest"
+          >Pass a Mux playback ID for HLS adaptive streaming. Poster
+          thumbnails are auto-generated from Mux.</Text
+        >
+        <Code
+          language="vue"
+          theme="github-dark"
+          :code="`<Vid playbackId='your-mux-playback-id' alt='Video title' />`"
+        />
+
+        <Text size="micro-1" class="mt-big">Local Files</Text>
+        <Text color="dim" class="mt-tinier mb-smallest"
+          >Use src for direct video files. Supports .mp4, .mov, .webm,
+          etc.</Text
+        >
+        <Code
+          language="vue"
+          theme="github-dark"
+          :code="`<Vid src='/video/example.mp4' alt='Local video' />`"
+        />
 
         <Text size="micro-1" class="mt-big">Default Preset</Text>
         <Text color="dim" class="mt-tinier mb-smallest"
-          >User-controlled video with visible controls. No autoplay, not muted,
-          no loop.</Text
+          >User-controlled video with visible controls. No autoplay, not
+          muted, no loop.</Text
         >
         <Code
           language="vue"
@@ -45,9 +70,9 @@
 
         <Text size="micro-1" class="mt-big">Custom Override</Text>
         <Text color="dim" class="mt-tinier mb-smallest"
-          >You can override preset settings with individual props. The example
-          below is an ambient video, but features controls instead of
-          click-to-play.</Text
+          >You can override preset settings with individual props. The
+          example below is an ambient video, but features controls instead
+          of click-to-play.</Text
         >
         <Code
           language="vue"
@@ -62,29 +87,39 @@
         />
       </DemoPageBody>
 
-      <!-- Accessibility -->
+      <!-- Features -->
       <DemoPageBody class="mt-bigger">
-        <Text>Accessibility Features</Text>
+        <Text>Features</Text>
         <Space size="tinier" />
         <Text size="body-2" color="dim">
-          Built-in accessibility improvements for better user experience.
+          Built-in capabilities that work automatically.
         </Text>
         <Code
           class="my-small"
           language="vue"
           theme="github-dark"
-          :code="`<!-- Click-to-play when controls are hidden -->
+          :code="`<!-- HLS adaptive bitrate streaming -->
+• Mux videos stream via HLS.js (Safari uses native HLS)
+• Adaptive quality based on network conditions
 
-<!-- Clickable + keyboard accessible -->
-<Vid preset='ambient' />
+<!-- Lazy loading & viewport awareness -->
+• Videos only load when scrolled into view
+• Auto-pauses when scrolling out, resumes on re-entry
 
-<!-- Features: -->
+<!-- Audio & captions detection -->
+• Mute/unmute button appears only on videos with audio
+• CC button appears only on videos with subtitle tracks
+• Controls: top-left, hover to show (cursor), always visible (touch)
+
+<!-- Subtitles -->
+<Vid playbackId='id' defaultSubtitleLang='en' />
+• Subtitles disabled by default, user enables via CC button
+
+<!-- Accessibility (ambient preset) -->
 • Click anywhere on video to play/pause
 • Spacebar and Enter key support
-• Focus indicators for keyboard navigation
 • Dynamic ARIA labels with play/pause state
-• Cursor pointer indicates interactivity
-• Hover and active states for visual feedback`"
+• Cursor pointer indicates interactivity`"
         />
       </DemoPageBody>
 
@@ -93,8 +128,8 @@
         <Text>Presets</Text>
         <Space size="tinier" />
         <Text size="body-2" color="dim">
-          Use presets for common video configurations. Individual props override
-          preset values.
+          Use presets for common video configurations. Individual props
+          override preset values.
         </Text>
         <Code
           class="my-small"
@@ -132,17 +167,20 @@ preset='ambient'    // Background video
           language="vue"
           theme="github-dark"
           :code="`<Vid
-  src='/path/to/video.mp4'      /* Video source (required) */
-  width='400'                   /* Video width */
-  height='300'                  /* Video height */
-  alt='Video description'       /* Alt text for accessibility */
-  autoplay='null'               /* Auto-start playback */
-  loop='null'                   /* Loop playback */
-  muted='null'                  /* Start muted */
-  controls='null'               /* Show video controls */
-  playsinline='true'            /* Play inline on mobile */
-  loading='lazy'                /* lazy | eager (uses Observer for lazy) */
-  poster='/path/to/poster.jpg'  /* Poster image */
+  playbackId='abc123'            /* Mux playback ID (preferred) */
+  src='/path/to/video.mp4'       /* Direct video URL fallback */
+  poster='/path/to/poster.jpg'   /* Custom poster (auto-generated for Mux) */
+  alt='Video description'        /* Alt text for accessibility */
+  width='400'                    /* Video width */
+  height='300'                   /* Video height */
+  preset='default'               /* default | ambient */
+  autoplay='null'                /* Override: auto-start playback */
+  loop='null'                    /* Override: loop playback */
+  muted='null'                   /* Override: start muted */
+  controls='null'                /* Override: show video controls */
+  playsinline='true'             /* Play inline on mobile */
+  loading='lazy'                 /* lazy | eager */
+  defaultSubtitleLang='en'       /* Enable subtitles for language */
 />`"
         />
       </DemoPageBody>
@@ -159,12 +197,10 @@ import DemoPageHeader from "~/components/demo/PageHeader.vue";
 import DemoPageBody from "~/components/demo/PageBody.vue";
 import DemoSectionNav from "~/components/demo/SectionNav.vue";
 
-// Run common mount/unmount scripts. Setup SEO, etc.
 PageSetup({
   seoMeta: { title: "Vid Component Documentation" },
 });
 
-// Define page transitions
 definePageMeta({
   pageTransition: pageTransitionDefault(),
 });
@@ -176,36 +212,5 @@ definePageMeta({
 .demo {
   margin-top: var(--unit-biggest);
   width: 100%;
-}
-
-// State demos
-.state-demo {
-  text-align: center;
-  background: var(--background-secondary);
-  padding: var(--unit-small);
-  border-radius: var(--radii-small);
-}
-
-// Mode demos
-.mode-demo {
-  background: var(--background-secondary);
-  padding: var(--unit-small);
-  border-radius: var(--radii-small);
-}
-
-// Advanced demos
-.advanced-demo {
-  background: var(--background-secondary);
-  padding: var(--unit-small);
-  border-radius: var(--radii-small);
-  text-align: center;
-}
-
-// Lazy loading demos
-.lazy-demo {
-  background: var(--background-secondary);
-  padding: var(--unit-small);
-  border-radius: var(--radii-small);
-  text-align: center;
 }
 </style>
