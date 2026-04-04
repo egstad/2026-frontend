@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type {Media} from '~/types/sanity'
+import type {Artifact} from '~/types/sanity'
 import {sanityImageUrl} from '~/utils/sanityImage'
 
 const props = defineProps<{
-  media: Media
+  media: Artifact
 }>()
 
 // Check if this is a video
@@ -60,7 +60,7 @@ const aspectRatio = computed(() => {
 
 <template>
   <NuxtLink
-    :to="`/media/${media.slug.current}`"
+    :to="`/artifact/${media.slug.current}`"
     class="media-card"
     :style="{ '--aspect': aspectRatio }"
     @mouseenter="onHover"

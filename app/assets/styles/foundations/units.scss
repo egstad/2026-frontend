@@ -40,7 +40,7 @@
   --unit-huger: 192px;
   --unit-hugest: 256px;
 
-  @include desktop {
+  @include ultrawide {
     --unit-tiniest: #{calc-vw(4px, $ultrawide)};
     --unit-tinier: #{calc-vw(8px, $ultrawide)};
     --unit-tiny: #{calc-vw(12px, $ultrawide)};

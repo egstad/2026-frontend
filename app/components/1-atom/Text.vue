@@ -6,6 +6,8 @@
       { '--indent': indent },
       { 't-dim': color === 'dim' },
       { 't-dimmer': color === 'dimmer' },
+      { '--font-seven': font === 'times-seven' },
+      { '--font-ten': font === 'times-ten' },
     ]"
     v-bind="$attrs"
   >
@@ -28,6 +30,7 @@ type SizeType =
   | "headline-3";
 
 type ColorType = "normal" | "dim" | "dimmer";
+type FontType = "sans" | "times-seven" | "times-ten";
 
 defineProps({
   size: {
@@ -61,6 +64,12 @@ defineProps({
     validator: (value: ColorType): boolean =>
       ["normal", "dim", "dimmer"].includes(value),
   },
+  font: {
+    type: String as PropType<FontType>,
+    default: "sans",
+    validator: (value: FontType): boolean =>
+      ["sans", "times-seven", "times-ten"].includes(value),
+  },
 });
 </script>
 
@@ -71,5 +80,13 @@ defineProps({
 
 .--mono {
   font-variant-numeric: tabular-nums;
+}
+
+.--font-seven {
+  font-family: "Times Seven", serif;
+}
+
+.--font-ten {
+  font-family: "Times Ten", serif;
 }
 </style>

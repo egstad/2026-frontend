@@ -20,6 +20,7 @@ export default defineNuxtConfig({
     { src: "~/plugins/device/deviceScroll.ts", mode: "client" },
     { src: "~/plugins/device/deviceResize.ts", mode: "client" },
     { src: "~/plugins/tweakpane.ts", mode: "client" },
+    { src: "~/plugins/gsap.client.ts", mode: "client" },
   ],
   pinia: {
     storesDirs: ["./stores/app", "./stores/device"],
@@ -51,6 +52,7 @@ export default defineNuxtConfig({
     { path: `~/components/2-molecule`, pathPrefix: false },
     { path: `~/components/3-organism`, pathPrefix: false },
     { path: `~/components/4-template`, pathPrefix: false },
+    { path: `~/components/about`, pathPrefix: false },
   ],
   compatibilityDate: "2025-10-18",
 });

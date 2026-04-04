@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type {Media} from '~/types/sanity'
+import type {Artifact} from '~/types/sanity'
 
 const props = defineProps<{
-  media: Media
+  media: Artifact
   size?: 'normal' | 'large'
 }>()
 

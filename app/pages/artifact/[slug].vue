@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import {sanityClient} from '~/utils/sanity'
 import {formatDate} from '~/utils/formatDate'
-import type {Media} from '~/types/sanity'
+import type {Artifact} from '~/types/sanity'
 import PageSetup from '~/composables/PageSetup'
 
 const route = useRoute()
 const nuxtApp = useNuxtApp()
 
 const {data: media} = await useAsyncData(
-  `media-${route.params.slug}`,
+  `artifact-${route.params.slug}`,
   () =>
-    sanityClient.fetch<Media>(
+    sanityClient.fetch<Artifact>(
       `
-    *[_type == "media" && slug.current == $slug][0] {
+    *[_type == "artifact" && slug.current == $slug][0] {
       _id,
       title,
       slug,
@@ -49,11 +49,11 @@ const {data: media} = await useAsyncData(
 )
 
 if (!media.value) {
-  throw createError({statusCode: 404, message: 'Media not found'})
+  throw createError({statusCode: 404, message: 'Artifact not found'})
 }
 
 PageSetup({
-  seoMeta: {title: media.value?.title || 'Media'},
+  seoMeta: {title: media.value?.title || 'Artifact'},
 })
 
 definePageMeta({
@@ -63,7 +63,7 @@ definePageMeta({
 
 <template>
   <div class="media-detail" v-if="media">
-    <NuxtLink to="/media" class="back">← Back to media</NuxtLink>
+    <NuxtLink to="/artifact" class="back">← Back to artifacts</NuxtLink>
 
     <div class="media-container">
       <MediaEmbed :media="media" size="large" />

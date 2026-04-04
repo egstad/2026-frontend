@@ -7,12 +7,16 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "devDependencies": {
     "@nuxt/devtools": "latest",
+    "@storybook/vue3-vite": "^10.3.3",
     "sass": "^1.93.2",
     "shiki": "^3.13.0",
+    "storybook": "^10.3.3",
     "vue-router": "^4.6.3"
   },
   "dependencies": {
@@ -24,6 +28,10 @@
     "@sanity/image-url": "^2.0.3",
     "@tweakpane/plugin-essentials": "^0.2.1",
     "@types/p5": "^1.7.6",
+    "embla-carousel": "^8.6.0",
+    "embla-carousel-auto-height": "^8.6.0",
+    "embla-carousel-auto-scroll": "^8.6.0",
+    "embla-carousel-fade": "^8.6.0",
     "gsap": "^3.13.0",
     "hls.js": "^1.6.15",
     "nuxt": "^4.1.3",

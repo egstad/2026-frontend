@@ -8,6 +8,8 @@
     <ArrowPathIcon v-else-if="name === 'loading'" class="animate-spin" />
     <XMarkIcon v-else-if="name === 'close'" />
     <ChevronUpDownIcon v-else-if="name === 'chevron-up-down'" />
+    <ChevronLeftIcon v-else-if="name === 'chevron-left'" />
+    <ChevronRightIcon v-else-if="name === 'chevron-right'" />
 
     <!-- Navigation & Actions -->
     <Bars3Icon v-else-if="name === 'menu'" />
@@ -47,6 +49,8 @@
     <ShareIcon v-else-if="name === 'share'" />
     <ClipboardIcon v-else-if="name === 'copy'" />
     <EllipsisHorizontalIcon v-else-if="name === 'more'" />
+    <PauseIcon v-else-if="name === 'pause'" />
+    <PlayIcon v-else-if="name === 'play'" />
   </div>
 </template>
 
@@ -60,6 +64,8 @@ import {
   ArrowPathIcon,
   XMarkIcon,
   ChevronUpDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   // Navigation & Actions
   Bars3Icon,
   HomeIcon,
@@ -93,6 +99,8 @@ import {
   ShareIcon,
   ClipboardIcon,
   EllipsisHorizontalIcon,
+  PauseIcon,
+  PlayIcon,
 } from "@heroicons/vue/24/solid";
 
 const props = defineProps<{
@@ -104,6 +112,8 @@ const props = defineProps<{
     | "loading"
     | "close"
     | "chevron-up-down"
+    | "chevron-left"
+    | "chevron-right"
     // Navigation & Actions
     | "menu"
     | "home"
@@ -137,7 +147,9 @@ const props = defineProps<{
     | "upload"
     | "share"
     | "copy"
-    | "more";
+    | "more"
+    | "pause"
+    | "play";
   size?: "small" | "medium" | "large";
 }>();
 </script>

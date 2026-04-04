@@ -20,7 +20,7 @@
 
 .button {
   width: fit-content;
-  border-radius: var(--unit-tiniest);
+  border-radius: var(--radii-big);
   border: 1px solid transparent;
   transition:
     color var(--transition-fast),
@@ -68,6 +68,7 @@
     align-items: center;
     justify-content: center;
     column-gap: var(--unit-tinier);
+    line-height: 1;
     transition: opacity var(--transition-fast);
 
     .icon {

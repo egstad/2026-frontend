@@ -1,26 +1,27 @@
 <script setup lang="ts">
 import { sanityClient } from "~/utils/sanity";
-import type { Media, Category, Tag, Client } from "~/types/sanity";
-import { useMediaStore } from "~/stores/media";
+import type { Artifact, Category, Tag, Client } from "~/types/sanity";
+import { useArtifactStore } from "~/stores/artifact";
 import PageSetup from "~/composables/PageSetup";
+import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
 
 PageSetup({
-  seoMeta: { title: "Media" },
+  seoMeta: { title: "Artifact" },
 });
 
 definePageMeta({
-  pageTransition: false,
+  pageTransition: pageTransitionDefault(),
 });
 
 const nuxtApp = useNuxtApp();
-const mediaStore = useMediaStore();
+const artifactStore = useArtifactStore();
 
 // Fetch all media with their relationships
 const { data: media } = await useAsyncData(
-  "media",
+  "artifact",
   () =>
-    sanityClient.fetch<Media[]>(`
-    *[_type == "media"] | order(dateTaken desc, _createdAt desc) {
+    sanityClient.fetch<Artifact[]>(`
+    *[_type == "artifact"] | order(dateTaken desc, _createdAt desc) {
       _id,
       title,
       slug,
@@ -49,7 +50,7 @@ const { data: media } = await useAsyncData(
 
 // Fetch filter options
 const { data: filterOptions } = await useAsyncData(
-  "media-filters",
+  "artifact-filters",
   () =>
     sanityClient.fetch<{
       categories: Category[];
@@ -124,7 +125,7 @@ function toggleMediaType(type: "image" | "video") {
 function setSort(option: SortOption) {
   if (option === "random" && activeSort.value === "random") {
     // Already on random, reshuffle
-    mediaStore.reshuffle();
+    artifactStore.reshuffle();
   }
   activeSort.value = option;
 }
@@ -155,7 +156,7 @@ function seededShuffle<T>(array: T[], seed: number): T[] {
 // Shuffled media based on stored seed (recomputes when seed changes)
 const shuffledMedia = computed(() => {
   if (!media.value?.length) return [];
-  return seededShuffle(media.value, mediaStore.randomSeed);
+  return seededShuffle(media.value, artifactStore.randomSeed);
 });
 
 // Get sorted media based on active sort

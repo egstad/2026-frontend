@@ -2,9 +2,12 @@
   <nav>
     <Text is="ul" size="caption-2">
       <li>construct</li>
-      <li><NuxtLink to="/media">media</NuxtLink></li>
+      <li><NuxtLink to="/about">about</NuxtLink></li>
+      <li><NuxtLink to="/artifact">artifact</NuxtLink></li>
       <li><NuxtLink to="/logs">logs</NuxtLink></li>
       <li><NuxtLink to="/channels">channels</NuxtLink></li>
+      <li><NuxtLink to="/ss">ss</NuxtLink></li>
+      <li><NuxtLink to="/lcd">lcd</NuxtLink></li>
     </Text>
   </nav>
 </template>

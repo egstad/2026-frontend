@@ -1,6 +1,6 @@
 import {defineStore} from 'pinia'
 
-export const useMediaStore = defineStore('media', () => {
+export const useArtifactStore = defineStore('artifact', () => {
   // Random seed for deterministic shuffling
   const randomSeed = ref<number>(Date.now())
 

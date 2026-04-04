@@ -70,7 +70,7 @@ PageSetup({
           </blockquote>
         </template>
 
-        <template v-else-if="block._type === 'media'">
+        <template v-else-if="block._type === 'artifact'">
           <figure class="media-figure">
             <MediaEmbed :media="block" />
           </figure>

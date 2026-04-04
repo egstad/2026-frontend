@@ -46,7 +46,11 @@ interface Props {
     | "search"
     | "loading"
     | "close"
-    | "chevron-up-down";
+    | "chevron-up-down"
+    | "chevron-left"
+    | "chevron-right"
+    | "pause"
+    | "play";
   iconPosition?: "leading" | "trailing";
 }
 

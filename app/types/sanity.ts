@@ -35,8 +35,11 @@ export interface Category {
 
 export interface Client {
   _id: string
+  _type: 'client'
   name: string
   slug: {current: string}
+  website?: string
+  featured?: boolean
 }
 
 export interface ImageMetadata {
@@ -51,9 +54,9 @@ export interface VideoMetadata {
   aspectRatio?: string // Mux returns as "16:9" string format
 }
 
-export interface Media {
+export interface Artifact {
   _id: string
-  _type: 'media'
+  _type: 'artifact'
   _createdAt?: string
   title: string
   slug: {current: string}
@@ -78,6 +81,35 @@ export interface Media {
   imageUrl?: string
   imageMeta?: ImageMetadata
   videoMeta?: VideoMetadata
+  muxPlaybackId?: string
+}
+
+export interface WorkHistory {
+  _id: string
+  _type: 'workHistory'
+  employer: string
+  roles: string[]
+  dateRange?: string
+  mediaType?: 'image' | 'video'
+  imageUrl?: string
+  muxPlaybackId?: string
+}
+
+export interface Great {
+  _id: string
+  _type: 'great'
+  name: string
+  imageUrl?: string
+}
+
+export interface Portrait {
+  _id: string
+  _type: 'portrait'
+  mediaType: 'image' | 'video'
+  title?: string
+  alt?: string
+  autoplay?: boolean
+  imageUrl?: string
   muxPlaybackId?: string
 }
 

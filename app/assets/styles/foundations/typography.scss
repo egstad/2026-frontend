@@ -1,54 +1,69 @@
+@use "sass:map";
 @use "../mixins" as *;
 @use "../vars" as *;
 
 /**
  * TYPE SYSTEM
  *
- * This file defines the typography scale using CSS custom properties.
- * Establishes consistent font sizes and line heights across the design system.
+ * Single source of truth: edit $type-scale and both the CSS custom
+ * properties and fluid-scale calls update automatically.
  *
  * TYPOGRAPHY SCALE:
  * - Micro levels: For small labels and captions
  * - Caption levels: For supporting text and metadata
  * - Body levels: For main content and reading text
  * - Headline levels: For titles and prominent text
- *
- * Each level includes both size and leading (line-height) for optimal readability.
- * Values are designed to work with fluid scaling on larger viewports.
  */
 
+// (size, line-height)
+$type-scale: (
+  "micro-2": (
+    8px,
+    12px,
+  ),
+  "micro-1": (
+    11px,
+    16px,
+  ),
+  "caption-2": (
+    12px,
+    16px,
+  ),
+  "caption-1": (
+    14px,
+    20px,
+  ),
+  "body-2": (
+    15px,
+    20px,
+  ),
+  "body-1": (
+    27px,
+    30px,
+  ),
+  "headline-2": (
+    35px,
+    40px,
+  ),
+  "headline-1": (
+    52px,
+    56px,
+  ),
+);
+
+@function t-size($name) {
+  @return nth(map.get($type-scale, $name), 1);
+}
+
+@function t-leading($name) {
+  @return nth(map.get($type-scale, $name), 2);
+}
+
 :root {
-  // micro 2
-  --t-micro-2-size: 8px;
-  --t-micro-2-leading: 12px;
-
-  // micro 1
-  --t-micro-1-size: 11px;
-  --t-micro-1-leading: 16px;
-
-  // caption 2
-  --t-caption-2-size: 12px;
-  --t-caption-2-leading: 16px;
-
-  // caption 1
-  --t-caption-1-size: 14px;
-  --t-caption-1-leading: 20px;
-
-  // body 2
-  --t-body-2-size: 19px;
-  --t-body-2-leading: 32px;
-
-  // body 1
-  --t-body-1-size: 24px;
-  --t-body-1-leading: 32px;
-
-  // headline 2
-  --t-headline-2-size: 35px;
-  --t-headline-2-leading: 40px;
-
-  // headline 1
-  --t-headline-1-size: 52px;
-  --t-headline-1-leading: 56px;
+  @each $name, $values in $type-scale {
+    --t-#{$name}-size: #{nth($values, 1)};
+    --t-#{$name}-leading: #{nth($values, 2)};
+  }
 }
 
 [class^="t-headline"] {
@@ -56,7 +71,7 @@
 }
 
 [class^="t-"] {
-  max-width: 100ch;
+  max-width: 80ch;
 
   code {
     font-family: monospace;
@@ -75,10 +90,7 @@
   letter-spacing: 0.08em;
   word-spacing: 0.01em;
   font-variation-settings: "wght" 400;
-
-  // note: you'll need to confirm these values match :root vars above
-  // params: (size, line-height, when fluid scale kicks in)
-  @include fluidScale(8px, 12px);
+  @include fluidScale(t-size("micro-2"), t-leading("micro-2"));
 }
 
 .t-micro-1 {
@@ -87,10 +99,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-variation-settings: "wght" 400;
-
-  // note: you'll need to confirm these values match :root vars above
-  // params: (size, line-height, when fluid scale kicks in)
-  @include fluidScale(11px, 16px);
+  @include fluidScale(t-size("micro-1"), t-leading("micro-1"));
 }
 
 .t-caption-2 {
@@ -98,10 +107,7 @@
   line-height: var(--t-caption-2-leading);
   letter-spacing: 0.025em;
   font-variation-settings: "wght" 400;
-
-  // note: you'll need to confirm these values match :root vars above
-  // params: (size, line-height, when fluid scale kicks in)
-  @include fluidScale(12px, 16px);
+  @include fluidScale(t-size("caption-2"), t-leading("caption-2"));
 }
 
 .t-caption-1 {
@@ -109,29 +115,16 @@
   line-height: var(--t-caption-1-leading);
   letter-spacing: 0.0125em;
   font-variation-settings: "wght" 420;
-
-  // note: you'll need to confirm these values match :root vars above
-  // params: (size, line-height, when fluid scale kicks in)
-  @include fluidScale(14px, 20px);
+  @include fluidScale(t-size("caption-1"), t-leading("caption-1"));
 }
 
 .t-body-2,
 .t-normal {
-  font-size: calc(var(--t-body-2-size) - 3.5px);
-  line-height: calc(var(--t-body-2-leading) - 8px);
+  font-size: var(--t-body-2-size);
+  line-height: var(--t-body-2-leading);
   letter-spacing: 0.01em;
   font-variation-settings: "wght" 400;
-
-  // --t-body-2-size: 19px;
-  // --t-body-2-leading: 32px;
-  @include laptop {
-    font-size: var(--t-body-2-size);
-    line-height: var(--t-body-2-leading);
-  }
-
-  // note: you'll need to confirm these values match :root vars above
-  // params: (size, line-height, when fluid scale kicks in)
-  @include fluidScale(16px, 24px);
+  @include fluidScale(t-size("body-2"), t-leading("body-2"));
 }
 
 .t-body-1 {
@@ -140,12 +133,8 @@
   letter-spacing: -0.007em;
   padding-top: var(--unit-tiniest);
   padding-bottom: var(--unit-tiniest);
-
-  font-variation-settings: "wght" 350;
-
-  // note: you'll need to confirm these values match :root vars above
-  // params: (size, line-height, when fluid scale kicks in)
-  @include fluidScale(24px, 32px);
+  font-variation-settings: "wght" 450;
+  @include fluidScale(t-size("body-1"), t-leading("body-1"));
 }
 
 .t-headline-2 {
@@ -154,11 +143,8 @@
   letter-spacing: -0.01em;
   padding-top: var(--unit-tiniest);
   padding-bottom: var(--unit-tiniest);
-  font-variation-settings: "wght" 350;
-
-  // note: you'll need to confirm these values match :root vars above
-  // params: (size, line-height, when fluid scale kicks in)
-  @include fluidScale(35px, 40px);
+  font-variation-settings: "wght" 450;
+  @include fluidScale(t-size("headline-2"), t-leading("headline-2"));
 }
 
 .t-headline-1 {
@@ -167,11 +153,8 @@
   letter-spacing: -0.04em;
   padding-top: var(--unit-tiniest);
   padding-bottom: var(--unit-tiniest);
-  font-variation-settings: "wght" 350;
-
-  // note: you'll need to confirm these values match :root vars above
-  // params: (size, line-height, when fluid scale kicks in)
-  @include fluidScale(52px, 56px);
+  font-variation-settings: "wght" 450;
+  @include fluidScale(t-size("headline-1"), t-leading("headline-1"));
 }
 
 .t-dim {
@@ -182,7 +165,45 @@
   color: var(--foreground-tertiary);
 }
 
+.t-indent {
+  text-indent: var(--unit-bigger);
+}
+
+.t-paragraph-leading {
+  > * + * {
+    margin-top: var(--unit-tiny);
+  }
+}
+
 @font-face {
   src: url("~/assets/fonts/DBC-MetaphorGX.ttf");
   font-family: "DBC Metaphor";
+}
+
+@font-face {
+  src: url("~/assets/fonts/TimesNRSevenMTStd.otf");
+  font-family: "Times Seven";
+  font-style: normal;
+  font-weight: normal;
+}
+
+@font-face {
+  src: url("~/assets/fonts/TimesNRSevenMTStd-Italic.otf");
+  font-family: "Times Seven";
+  font-style: italic;
+  font-weight: normal;
+}
+
+@font-face {
+  src: url("~/assets/fonts/TimesTenLTStd-Roman.otf");
+  font-family: "Times Ten";
+  font-style: normal;
+  font-weight: normal;
+}
+
+@font-face {
+  src: url("~/assets/fonts/TimesTenLTStd-Italic.otf");
+  font-family: "Times Ten";
+  font-style: italic;
+  font-weight: normal;
 }
