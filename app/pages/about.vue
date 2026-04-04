@@ -110,7 +110,7 @@ const orderedPortraits = computed(() => {
   <div class="about-page">
     <Grid class="intro">
       <Column span-tablet="3" span-laptop="2">
-        <h2 class="pb-tiny section-label">
+        <h2 class="pb-tiny section-label t-indent">
           <Text color="dimmer">Intro</Text>
         </h2>
       </Column>
@@ -155,28 +155,29 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid class="details mt-bigger">
+    <Grid class="details mt-biggest">
       <Column span-tablet="3" span-laptop="2">
-        <h2 class="pb-tiny section-label">
+        <h2 class="pb-tiny section-label t-indent">
           <Text color="dimmer">Details</Text>
         </h2>
       </Column>
       <Column span-tablet="9" class="t-paragraph-leading">
-        <Text font="times-ten">
-          i live in tulsa, oklahoma with my wife emma, our dog tom, and three
-          cats: jason waterfalls, minnie, and gene. when i’m not working, i’m
-          busy being a professional hobbyist who likely has been living with an
-          undiagnosed case of ADHD. i’m playing music or taking a photo walk. a
-          hike. a round of magic: the gathering. slowly reading through four
-          books at a time. flipping through records.
+        <Text font="times-seven" indent>
+          I live in Tulsa, Oklahoma with my wife Emma, our dog Tom, and three
+          cats: Jason Waterfalls, Minnie, and Gene Parmesan. When I’m not
+          working, I’m busy being a professional hobbyist who likely has been
+          living with an undiagnosed case of ADHD. Odds are you’d find me either
+          playing music or taking a photo walk, a hike, a round of Magic: The
+          Gathering, slowly reading through four books at a time, or flipping
+          through records.
         </Text>
       </Column>
     </Grid>
 
-    <Grid v-if="clients?.length" class="mt-bigger">
+    <Grid v-if="clients?.length" class="mt-biggest">
       <Column span-tablet="3" span-laptop="2">
-        <h2 class="pb-tiny section-label">
-          <Text color="dimmer">Select Clients</Text>
+        <h2 class="pb-tiny section-label t-indent">
+          <Text color="dimmer">Clients</Text>
         </h2>
       </Column>
       <Column span-tablet="9">
@@ -186,59 +187,66 @@ const orderedPortraits = computed(() => {
 
     <Grid>
       <Column span-tablet="3" span-laptop="2">
-        <h2 class="pb-tiny section-label">
+        <h2 class="pb-tiny section-label t-indent">
           <Text color="dimmer">History</Text>
         </h2>
       </Column>
       <Column span-tablet="9" class="t-paragraph-leading">
-        <Text>
-          i was eight years old when terry hardy, my first art teacher, asked us
-          to draw how we felt that day. it was september 12, 2001, the day after
-          the towers fell. i didn’t know it at the time, but that simple
-          prompt—an invitation to give shape to something invisible—gave my
-          creative life an early direction.
+        <Text font="times-seven" indent>
+          I was eight years old when Terry Hardy, my first art teacher, asked us
+          to draw how we felt that day. It was September 12, 2001, the day after
+          the World Trade Center was reduced to rubble. I didn’t know it at the
+          time, but that simple prompt, an invitation to give shape to something
+          invisible <em>(feelings)</em>, gave my creative life an early
+          direction.
         </Text>
-        <Text>
-          in middle and high school, jennifer van patten expanded the world of
+        <Text font="times-seven" indent>
+          In middle and high school, Jennifer Van Patten expanded the world of
           materials—drawing, painting, ceramics, mixed media—and modeled a
-          quiet, consistent way of seeing. she drank iced tea, played satellite
-          radio, and never raised her voice (even when we deserved it). she had
-          a wonderful sense of humor, a contagious belly laugh, and was the best
-          watercolorist i’ve ever met. she taught us angsty teenagers that
-          creating could be light, generous, and joyfully unfussy.
+          quiet, consistent way of seeing. She drank iced tea, played satellite
+          radio, and never raised her voice <em>(even when we deserved it)</em>.
+          She had a wonderful sense of humor, a contagious belly laugh, and was
+          the best watercolorist I’ve ever met. She taught us angsty teenagers
+          that creating could be light, generous, and joyfully unfussy.
         </Text>
-        <Text>
-          later, judy mcintosh sharpened my eye and introduced me to three
+        <Text font="times-seven" indent>
+          Later, Judy McIntosh sharpened my eye and introduced me to three
           mediums that would shape my next few years: photography, ceramics, and
-          street art. she was small but commanding, known to suddenly and
-          dramatically gasp whenever something struck her as beautiful. new
-          students found it jarring, which it was. i found it thrilling. she had
-          grit, sass, and a collection of phrases we all came to expect: “every
-          day is a school day,” “criticism is water on a duck’s back,” “art
-          should take your eye on a ride.” she was fiercely supportive and
-          unafraid to push us further than we thought we could go. before i left
-          for college to study audio production, she sat me down and told me
-          that she was sure music would be a fine path for me, but she felt the
-          visual arts is where i belonged. i changed my major that week and am
-          so grateful i listened.
+          street art. She was small but commanding, known to suddenly and
+          dramatically gasp whenever something struck her as beautiful. New
+          students found it jarring, which it was. I found it thrilling. She had
+          grit, sass, and a collection of phrases we all came to expect:
+          <em
+            >“Every day is a school day,” “Criticism is water on a duck’s back,”
+            “Art should take your eye on a ride.”</em
+          >
+          She was fiercely supportive and unafraid to push us further than we
+          thought we could go. Before I left for college to study audio
+          production, she sat me down and told me she was sure music would be a
+          fine path for me, but she felt the visual arts were where I belonged.
+          I changed my major that week. I’m still grateful I listened.
         </Text>
-        <Text>
-          my first college professor, britt stadig, introduced me to the
+        <Text font="times-seven" indent>
+          My first college professor, Britt Stadig, introduced me to the
           structure behind the beauty: color theory, typography, bookbinding.
-          she was exacting and generous. she also gave me my first design job,
-          making posters around campus. i only stayed in college for two
-          quarters. during spring break, i was robbed—my computer, my work,
+          She was exacting and generous. She also gave me my first design job,
+          making posters around campus. I only stayed in college for two
+          quarters. During spring break, I was robbed—my computer, my work,
           childhood photos, back-up hard drives, musical instruments, all gone.
-          it was a stupid, devastating loss. but in its wake, i realized two
-          things: i didn’t want to be in school, and i didn’t need to be. i had
+          It was a stupid, devastating loss. But in its wake, I realized two
+          things: I didn’t want to be in school, and I didn’t need to be. I had
           already learned the most important thing from these women: how to
-          look. how to learn. how to create from that attention.
+          look. How to learn. How to create from that attention.
         </Text>
-        <Text>
-          after leaving, i decided to take the so-called “self-taught”
-          route—though i dislike the term. it erases the thinkers, makers, and
-          mentors whose work not only inspired me, but actively shaped how i
-          see.
+        <Text font="times-seven" indent>
+          After leaving, I decided to take the so-called “self-taught” route,
+          though I dislike the term. It erases the thinkers, makers, and mentors
+          whose work not only inspired me, but actively shaped how I see. What
+          follows is an incomplete and ever-growing gallery of those people.
+          Some I’ve learned from at a distance, through their work. Others have
+          taught me directly, guided me, challenged me, and, at times, cared for
+          me when I needed it most. They are imperfect, as am I, but their
+          thoughts and actions have made a meaningful difference in my life.
         </Text>
       </Column>
     </Grid>
@@ -247,10 +255,10 @@ const orderedPortraits = computed(() => {
       <AboutCarousel v-if="greats?.length" :items="greats" class="my-bigger" />
     </ClientOnly>
 
-    <Grid v-if="workHistory?.length">
+    <Grid v-if="workHistory?.length" class="history mt-biggest">
       <Column span-tablet="3" span-laptop="2">
-        <h2 class="pb-tiny section-label">
-          <Text color="dimmer">Work History</Text>
+        <h2 class="pb-tiny section-label t-indent">
+          <Text color="dimmer">Work</Text>
         </h2>
       </Column>
       <Column span-tablet="8" span-laptop="9" span-desktop="8">
@@ -258,31 +266,31 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid class="footprint mt-bigger">
+    <Grid class="footprint mt-biggest">
       <Column span-tablet="3" span-laptop="2">
-        <h2 class="pb-tiny section-label">
+        <h2 class="pb-tiny section-label t-indent">
           <Text color="dimmer">Footprint</Text>
         </h2>
       </Column>
       <Column span-tablet="9">
         <Grid>
           <Column class="t-paragraph-leading pb-smaller">
-            <Text indent>
-              nothing online is weightless. every page, every interaction draws
-              power from somewhere. this site keeps that cost low—running on
+            <Text indent font="times-seven">
+              Nothing online is weightless. Every page, every interaction draws
+              power from somewhere. This site keeps that cost low—running on
               services that prioritize renewable energy, with a measured
-              footprint of about 0.4 kg co₂ per month (~5 kg per year).
+              footprint of about 0.4 kg CO₂ per month (~5 kg per year).
             </Text>
-            <Text indent>
-              i offset that impact fivefold each year, covering the equivalent
-              of ~125 kg co₂ over a five-year window. some of that support goes
+            <Text indent font="times-seven">
+              I offset that impact fivefold each year, covering the equivalent
+              of ~125 kg CO₂ over a five-year window. Some of that support goes
               toward removal—through organizations like
-              <a href="https://climeworks.com/" target="_blank">climeworks</a>,
-              which capture co₂ directly from the air and store it. some goes
+              <a href="https://climeworks.com/" target="_blank">Climeworks</a>,
+              which capture CO₂ directly from the air and store it. Some goes
               toward systemic change—through groups like
               <a href="https://www.catf.us/" target="_blank"
-                >clean air task force</a
-              >, focused on long-term climate solutions at scale. it’s one small
+                >Clean Air Task Force</a
+              >, focused on long-term climate solutions at scale. It’s one small
               part of a much larger problem, but it’s an intentional effort to
               take responsibility for my share of it.</Text
             >
@@ -334,15 +342,15 @@ const orderedPortraits = computed(() => {
           <Column
             span-laptop="3"
             start-laptop="10"
-            span-desktop="2"
+            span-desktop="4"
             start-desktop="9"
             start-ultrawide="8"
           >
             <Text is="div" size="caption-2" color="dim">
               <ul>
-                <li>10.4 gb of data / month</li>
-                <li>1.0 kwh of energy / month</li>
-                <li>0.4 kg co₂ / month</li>
+                <li>• 10.4 gb of data / month</li>
+                <li>• 1.0 kwh of energy / month</li>
+                <li>• 0.4 kg CO₂ / month</li>
               </ul>
             </Text>
           </Column>
@@ -350,9 +358,11 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid class="footprint mt-bigger">
+    <Grid class="footprint mt-biggest">
       <Column span-tablet="3" span-laptop="2">
-        <h2 class="pb-tiny section-label"><Text color="dimmer">Land</Text></h2>
+        <h2 class="pb-tiny section-label t-indent">
+          <Text color="dimmer">Land</Text>
+        </h2>
       </Column>
       <Column span-tablet="9" class="t-paragraph-leading">
         <Text indent>
@@ -372,12 +382,9 @@ const orderedPortraits = computed(() => {
   padding-bottom: var(--unit-huger);
 }
 
-:deep(.grid:has(.section-label)) {
-  align-items: first baseline;
-}
-
 .section-label {
   @include tablet {
+    text-indent: 0;
     position: sticky;
     top: var(--unit-small);
   }

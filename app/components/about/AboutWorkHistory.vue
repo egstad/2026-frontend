@@ -198,19 +198,19 @@ onUnmounted(() => {
           >
             <div class="work-left">
               <span class="employer">
-                <Text size="caption-2">
+                <Text size="caption-1">
                   {{ job.employer }}
                 </Text></span
               >
               <ul v-if="job.roles?.length" class="roles">
                 <li v-for="(role, i) in job.roles" :key="i">
-                  <Text size="caption-2">{{ role }}</Text>
+                  <Text size="caption-1">{{ role }}</Text>
                 </li>
               </ul>
             </div>
 
             <span v-if="job.dateRange" class="date-range">
-              <Text size="caption-2">
+              <Text size="caption-1">
                 {{ job.dateRange }}
               </Text></span
             >
@@ -270,7 +270,7 @@ onUnmounted(() => {
   flex-direction: column;
 
   @include desktop {
-    max-width: calc(var(--unit-hugest) * 2);
+    // max-width: calc(var(--unit-hugest) * 2);
   }
 }
 

@@ -34,11 +34,11 @@ $type-scale: (
     20px,
   ),
   "body-2": (
-    15px,
-    20px,
+    18px,
+    25px,
   ),
   "body-1": (
-    27px,
+    26px,
     30px,
   ),
   "headline-2": (
@@ -81,6 +81,11 @@ $type-scale: (
     border: 1px solid var(--border-primary);
     color: var(--foreground-primary);
   }
+
+  i,
+  em {
+    font-style: italic;
+  }
 }
 
 .t-micro-2 {
@@ -122,9 +127,12 @@ $type-scale: (
 .t-normal {
   font-size: var(--t-body-2-size);
   line-height: var(--t-body-2-leading);
-  letter-spacing: 0.01em;
   font-variation-settings: "wght" 400;
   @include fluidScale(t-size("body-2"), t-leading("body-2"));
+
+  &.--font-seven {
+    letter-spacing: -0.025em;
+  }
 }
 
 .t-body-1 {
@@ -171,7 +179,7 @@ $type-scale: (
 
 .t-paragraph-leading {
   > * + * {
-    margin-top: var(--unit-tiny);
+    margin-top: var(--unit-smaller);
   }
 }
 
