@@ -338,7 +338,7 @@ const orderedPortraits = computed(() => {
             start-desktop="9"
             start-ultrawide="8"
           >
-            <Text size="caption-2" color="dim">
+            <Text is="div" size="caption-2" color="dim">
               <ul>
                 <li>10.4 gb of data / month</li>
                 <li>1.0 kwh of energy / month</li>
