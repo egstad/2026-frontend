@@ -116,21 +116,28 @@ const orderedPortraits = computed(() => {
       </Column>
       <Column start-laptop="3" span-desktop="8" class="t-paragraph-leading">
         <Text size="body-1" font="times-ten" indent>
-          Hello world, I’m Jordan Egstad. A designer, developer, and creative
-          partner at Design Business Company. Based in Tulsa, Oklahoma USA, I
-          collaborate with teams around the world to create brands, websites,
-          apps, typefaces, imagery, and more.
+          Hello, I’m Jordan Egstad. I’m a designer and developer, and a creative
+          partner at
+          <a href="https://dbco.online/" target="_blank"
+            >Design Business Company</a
+          >. Based in Tulsa, Oklahoma, I work with teams around the world to
+          build brands, websites, apps, typefaces, imagery, and the systems
+          behind them.
         </Text>
         <Text size="body-1" font="times-ten" indent>
-          My practice is equal parts logic and feeling—structured by systems,
-          softened by play. I try to make things that don’t just work, but
-          belong—clear in form, distinct in voice, true to their source.
+          I care about making things clear. Not minimal for its own sake, just
+          honest and understood. I use structure, grids, systems, language, to
+          give things shape, not to control them. I think form carries meaning.
+          So the work has to look right, feel right, and hold up. I’m not
+          interested in trends or noise. I’d rather make something quiet that
+          lasts.
         </Text>
 
         <ClientOnly class="pt-small">
           <Carousel
             v-if="orderedPortraits.length"
             class="portraits"
+            :autoplay="true"
             :captions="orderedPortraits.map((p) => p.title || '')"
           >
             <div
@@ -400,5 +407,16 @@ const orderedPortraits = computed(() => {
 
 .portraits {
   max-width: calc(var(--unit-hugest) * 2);
+}
+
+.intro {
+  a {
+    // font-style: italic;
+    // color: inherit;
+    // text-decoration-thickness: 0.05em;
+    // text-decoration-color: var(--interactive-primary);
+    // text-decoration-skip-ink: all;
+    // text-decoration-style: dotted;
+  }
 }
 </style>

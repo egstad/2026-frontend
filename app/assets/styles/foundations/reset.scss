@@ -134,7 +134,10 @@ table {
   -webkit-touch-callout: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "kern" 1, "pnum" 1, "liga" 1;
+  font-feature-settings:
+    "kern" 1,
+    "pnum" 1,
+    "liga" 1;
   font-kerning: normal;
   font-synthesis: none;
   box-sizing: border-box;
@@ -166,8 +169,13 @@ html {
 }
 
 a {
-  color: var(--interactive-primary);
+  // color: var(--interactive-primary);
   text-underline-offset: 0.15em;
+  color: inherit;
+  text-decoration-thickness: 0.05em;
+  text-decoration-color: var(--interactive-tertiary);
+  text-decoration-skip-ink: all;
+  // text-decoration-style: dotted;
 
   &:hover {
     color: var(--interactive-secondary);

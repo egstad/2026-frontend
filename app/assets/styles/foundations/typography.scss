@@ -1,4 +1,5 @@
 @use "sass:map";
+@use "sass:list";
 @use "../mixins" as *;
 @use "../vars" as *;
 
@@ -52,17 +53,17 @@ $type-scale: (
 );
 
 @function t-size($name) {
-  @return nth(map.get($type-scale, $name), 1);
+  @return list.nth(map.get($type-scale, $name), 1);
 }
 
 @function t-leading($name) {
-  @return nth(map.get($type-scale, $name), 2);
+  @return list.nth(map.get($type-scale, $name), 2);
 }
 
 :root {
   @each $name, $values in $type-scale {
-    --t-#{$name}-size: #{nth($values, 1)};
-    --t-#{$name}-leading: #{nth($values, 2)};
+    --t-#{$name}-size: #{list.nth($values, 1)};
+    --t-#{$name}-leading: #{list.nth($values, 2)};
   }
 }
 

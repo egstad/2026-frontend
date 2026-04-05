@@ -2,16 +2,20 @@
 import EmblaCarousel from "embla-carousel";
 import Fade from "embla-carousel-fade";
 import AutoHeight from "embla-carousel-auto-height";
+import Autoplay from "embla-carousel-autoplay";
 import type { EmblaCarouselType } from "embla-carousel";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/vue/24/solid";
 
 const props = withDefaults(
   defineProps<{
     loop?: boolean;
     captions?: string[];
+    autoplay?: boolean;
+    autoplayDelay?: number;
   }>(),
-  { loop: true },
+  { loop: true, autoplay: false, autoplayDelay: 4000 },
 );
 
 const viewportEl = ref<HTMLElement | null>(null);
@@ -93,10 +97,18 @@ function onSelect() {
 onMounted(() => {
   if (!viewportEl.value) return;
 
-  embla = EmblaCarousel(viewportEl.value, { loop: true }, [
-    Fade(),
-    AutoHeight(),
-  ]);
+  const plugins = [Fade(), AutoHeight()];
+  if (props.autoplay) {
+    plugins.push(
+      Autoplay({
+        delay: props.autoplayDelay,
+        stopOnInteraction: true,
+        stopOnMouseEnter: true,
+      }),
+    );
+  }
+
+  embla = EmblaCarousel(viewportEl.value, { loop: true }, plugins);
 
   slideCount.value = embla.slideNodes().length;
   visibleCaption.value = props.captions?.[0] ?? "";
@@ -109,6 +121,14 @@ onMounted(() => {
   embla.slideNodes().forEach((slide) => resizeObserver!.observe(slide));
 });
 
+function onCarouselEnter() {
+  if (props.autoplay) embla?.plugins()?.autoplay?.play();
+}
+
+function onCarouselLeave() {
+  if (props.autoplay) embla?.plugins()?.autoplay?.stop();
+}
+
 onUnmounted(() => {
   if (refreshTimer) clearTimeout(refreshTimer);
   gsap.killTweensOf(typewriter);
@@ -118,40 +138,40 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="carousel">
-    <div class="carousel__stage">
-      <div ref="viewportEl" class="carousel__viewport" @click="next">
-        <div class="carousel__container">
-          <slot />
+  <Observer :on-enter="onCarouselEnter" :on-leave="onCarouselLeave">
+    <div class="carousel">
+      <div class="carousel__stage">
+        <div ref="viewportEl" class="carousel__viewport">
+          <div class="carousel__container">
+            <slot />
+          </div>
+        </div>
+
+        <div v-if="slideCount > 1" class="carousel__arrows" @click="next">
+          <button
+            class="carousel__btn"
+            aria-label="Previous slide"
+            @click.stop="prev"
+          >
+            <ChevronLeftIcon class="carousel__btn-icon" aria-hidden="true" />
+          </button>
+          <button
+            class="carousel__btn"
+            aria-label="Next slide"
+            @click.stop="next"
+          >
+            <ChevronRightIcon class="carousel__btn-icon" aria-hidden="true" />
+          </button>
         </div>
       </div>
 
-      <div v-if="slideCount > 1" class="carousel__arrows">
-        <BaseButton
-          variant="ghost"
-          size="small"
-          icon="chevron-left"
-          icon-position="leading"
-          aria-label="Previous slide"
-          @click.stop="prev"
-        />
-        <BaseButton
-          variant="ghost"
-          size="small"
-          icon="chevron-right"
-          icon-position="leading"
-          aria-label="Next slide"
-          @click.stop="next"
-        />
-      </div>
+      <p ref="captionEl" class="carousel__caption">
+        <Text size="caption-2" color="dimmer">{{
+          visibleCaption || "\u00a0"
+        }}</Text>
+      </p>
     </div>
-
-    <p ref="captionEl" class="carousel__caption">
-      <Text size="caption-2" color="dimmer">{{
-        visibleCaption || "\u00a0"
-      }}</Text>
-    </p>
-  </div>
+  </Observer>
 </template>
 
 <style lang="scss" scoped>
@@ -165,7 +185,6 @@ onUnmounted(() => {
 
 .carousel__viewport {
   overflow: hidden;
-  cursor: pointer;
 }
 
 .carousel__container {
@@ -183,11 +202,12 @@ onUnmounted(() => {
 
 .carousel__arrows {
   position: absolute;
-  top: var(--unit-tinier);
-  left: var(--unit-tinier);
+  inset: 0;
   display: flex;
-  gap: var(--unit-tiniest);
-  pointer-events: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--unit-tinier);
+  cursor: pointer;
 
   @media (hover: hover) {
     opacity: 0;
@@ -195,14 +215,40 @@ onUnmounted(() => {
   }
 }
 
-.carousel__arrows :deep(.base-button) {
-  pointer-events: all;
-}
-
 @media (hover: hover) {
-  .carousel__stage:hover .carousel__arrows {
+  .carousel__stage:hover .carousel__arrows,
+  .carousel__stage:focus-within .carousel__arrows {
     opacity: 1;
   }
+}
+
+.carousel__btn {
+  width: 24px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--background-primary) 70%, transparent);
+  backdrop-filter: blur(4px);
+  color: var(--foreground-secondary);
+  border: none;
+  border-radius: var(--unit-tiniest);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+
+  &:hover {
+    background: color-mix(in srgb, var(--background-primary) 90%, transparent);
+    color: var(--foreground-primary);
+  }
+}
+
+.carousel__btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .carousel__caption {

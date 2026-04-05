@@ -65,8 +65,6 @@ function getBlockImage(block: ArenaBlock): string | null {
 </template>
 
 <style lang="scss" scoped>
-@use '~/assets/styles/global' as *;
-
 .channel-row {
   display: grid;
   grid-auto-flow: column;
