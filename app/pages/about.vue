@@ -138,6 +138,7 @@ const orderedPortraits = computed(() => {
             v-if="orderedPortraits.length"
             class="portraits"
             :autoplay="true"
+            :autoplay-delay="7000"
             :captions="orderedPortraits.map((p) => p.title || '')"
           >
             <div
