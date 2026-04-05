@@ -73,9 +73,13 @@ defineProps({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .--indent {
-  text-indent: var(--unit-bigger);
+  text-indent: var(--unit-big);
+
+  @include laptop {
+    text-indent: var(--unit-bigger);
+  }
 }
 
 .--mono {

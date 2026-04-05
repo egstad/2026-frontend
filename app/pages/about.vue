@@ -302,7 +302,7 @@ const orderedPortraits = computed(() => {
               take responsibility for my share of it.</Text
             >
           </Column>
-          <Column span-laptop="9" span-desktop="8" span-ultrawide="7">
+          <Column span-laptop="8" span-desktop="6" span-ultrawide="6">
             <svg
               width="660"
               height="660"
@@ -348,10 +348,10 @@ const orderedPortraits = computed(() => {
           </Column>
           <Column
             span-laptop="3"
-            start-laptop="10"
+            start-laptop="9"
             span-desktop="4"
-            start-desktop="9"
-            start-ultrawide="8"
+            start-desktop="7"
+            start-ultrawide="7"
           >
             <Text is="div" size="caption-2" color="dim">
               <ul>
@@ -365,7 +365,7 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid class="footprint mt-biggest">
+    <Grid class="land mt-biggest">
       <Column span-tablet="3" span-laptop="2">
         <h2 class="pb-tiny section-label t-indent">
           <Text color="dimmer">Land</Text>
@@ -387,6 +387,7 @@ const orderedPortraits = computed(() => {
 .about-page {
   padding-top: var(--unit-huger);
   padding-bottom: var(--unit-huger);
+  // background: url(https://www.geocities.ws/lotsanimations/images/4-tile.jpg);
 }
 
 .section-label {

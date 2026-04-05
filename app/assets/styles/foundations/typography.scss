@@ -174,10 +174,6 @@ $type-scale: (
   color: var(--foreground-tertiary);
 }
 
-.t-indent {
-  text-indent: var(--unit-bigger);
-}
-
 .t-paragraph-leading {
   > * + * {
     margin-top: var(--unit-smaller);
