@@ -268,7 +268,7 @@ const orderedPortraits = computed(() => {
           <Text color="dimmer">Work</Text>
         </h2>
       </Column>
-      <Column span-tablet="8" span-laptop="9" span-desktop="8">
+      <Column span-tablet="8" span-laptop="10" span-desktop="8">
         <AboutWorkHistory :items="workHistory" />
       </Column>
     </Grid>

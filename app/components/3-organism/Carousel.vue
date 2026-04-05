@@ -32,15 +32,51 @@ function scheduleSTRefresh() {
 const selectedIndex = ref(0);
 const slideCount = ref(0);
 const visibleCaption = ref("");
+// Once the user navigates manually, autoplay stops for good
+const userInteracted = ref(false);
+
+// CSS animation duration driven by the autoplay delay prop
+const ringDuration = computed(() => `${props.autoplayDelay}ms`);
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function stopAutoplay() {
+  embla?.plugins()?.autoplay?.stop();
+}
+
+function startAutoplay() {
+  embla?.plugins()?.autoplay?.play();
+}
+
+// Called on any deliberate user navigation — kills autoplay permanently
+function onUserInteract() {
+  if (!props.autoplay || userInteracted.value) return;
+  userInteracted.value = true;
+  stopAutoplay();
+}
+
+function onStageEnter() {
+  if (!props.autoplay || userInteracted.value) return;
+  stopAutoplay();
+}
+
+function onStageLeave() {
+  if (!props.autoplay || userInteracted.value) return;
+  startAutoplay();
+}
 
 // Mutable object reused by the typewriter tween so we can kill it by reference
 const typewriter = { count: 0 };
 
 function prev() {
+  onUserInteract();
   embla?.scrollPrev();
 }
 
 function next() {
+  onUserInteract();
   embla?.scrollNext();
 }
 
@@ -103,7 +139,7 @@ onMounted(() => {
       Autoplay({
         delay: props.autoplayDelay,
         stopOnInteraction: true,
-        stopOnMouseEnter: true,
+        stopOnMouseEnter: false,
       }),
     );
   }
@@ -113,6 +149,7 @@ onMounted(() => {
   slideCount.value = embla.slideNodes().length;
   visibleCaption.value = props.captions?.[0] ?? "";
   embla.on("select", onSelect);
+  embla.on("pointerDown", onUserInteract);
 
   resizeObserver = new ResizeObserver(() => {
     embla?.reInit();
@@ -122,11 +159,11 @@ onMounted(() => {
 });
 
 function onCarouselEnter() {
-  if (props.autoplay) embla?.plugins()?.autoplay?.play();
+  if (props.autoplay && !userInteracted.value) startAutoplay();
 }
 
 function onCarouselLeave() {
-  if (props.autoplay) embla?.plugins()?.autoplay?.stop();
+  if (props.autoplay) stopAutoplay();
 }
 
 onUnmounted(() => {
@@ -139,8 +176,17 @@ onUnmounted(() => {
 
 <template>
   <Observer :on-enter="onCarouselEnter" :on-leave="onCarouselLeave">
-    <div class="carousel">
-      <div class="carousel__stage">
+    <div
+      class="carousel"
+      tabindex="0"
+      @keydown.left.prevent="prev"
+      @keydown.right.prevent="next"
+    >
+      <div
+        class="carousel__stage"
+        @mouseenter="onStageEnter"
+        @mouseleave="onStageLeave"
+      >
         <div ref="viewportEl" class="carousel__viewport">
           <div class="carousel__container">
             <slot />
@@ -165,11 +211,55 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <p ref="captionEl" class="carousel__caption">
-        <Text size="caption-2" color="dimmer">{{
-          visibleCaption || "\u00a0"
-        }}</Text>
-      </p>
+      <div class="carousel__footer">
+        <p ref="captionEl" class="carousel__caption">
+          <Text size="caption-2" color="dim">{{
+            visibleCaption || "\u00a0"
+          }}</Text>
+        </p>
+
+        <div
+          v-if="slideCount > 1"
+          class="carousel__counter"
+          :class="{ 'carousel__counter--playing': autoplay && !userInteracted }"
+          aria-hidden="true"
+        >
+          <Transition name="ring-fade">
+            <svg
+              v-if="autoplay && !userInteracted"
+              :key="selectedIndex"
+              class="carousel__ring"
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+            >
+              <circle
+                cx="7"
+                cy="7"
+                r="5"
+                stroke="var(--background-quaternary)"
+                stroke-width="1"
+              />
+              <circle
+                class="carousel__ring-fill"
+                cx="7"
+                cy="7"
+                r="5"
+                stroke="var(--foreground-secondary)"
+                stroke-width="1"
+                stroke-linecap="round"
+                stroke-dasharray="31.416"
+                stroke-dashoffset="31.416"
+                transform="rotate(-90 7 7)"
+              />
+            </svg>
+          </Transition>
+          <Text is="span" size="micro-1" color="dimmer" class="carousel__count">
+            {{ pad(selectedIndex + 1) }}&nbsp;/&nbsp;{{ pad(slideCount) }}
+          </Text>
+        </div>
+      </div>
     </div>
   </Observer>
 </template>
@@ -177,6 +267,13 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .carousel {
   user-select: none;
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--interactive-primary);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
 }
 
 .carousel__stage {
@@ -216,8 +313,7 @@ onUnmounted(() => {
 }
 
 @media (hover: hover) {
-  .carousel__stage:hover .carousel__arrows,
-  .carousel__stage:focus-within .carousel__arrows {
+  .carousel__stage:hover .carousel__arrows {
     opacity: 1;
   }
 }
@@ -251,8 +347,69 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.carousel__caption {
+.carousel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--unit-tinier);
   padding-top: var(--unit-tinier);
+}
+
+.carousel__caption {
   color: var(--foreground-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.carousel__counter {
+  display: flex;
+  align-items: center;
+  gap: var(--unit-tinier);
+  flex-shrink: 0;
+  color: var(--foreground-quaternary);
+  transition: opacity var(--transition);
+
+  @media (hover: hover) {
+    &:not(.carousel__counter--playing) {
+      opacity: 0;
+    }
+  }
+}
+
+@media (hover: hover) {
+  .carousel:has(.carousel__stage:hover) .carousel__counter {
+    opacity: 1;
+  }
+}
+
+.carousel__ring {
+  display: block;
+  flex-shrink: 0;
+  margin-top: 0.1em;
+}
+
+.ring-fade-leave-active {
+  transition: opacity var(--transition);
+}
+
+.ring-fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes ring-fill {
+  from {
+    stroke-dashoffset: 31.416;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.carousel__ring-fill {
+  animation: ring-fill v-bind(ringDuration) linear forwards;
+}
+
+.carousel__count {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 </style>
