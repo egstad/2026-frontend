@@ -111,16 +111,12 @@ async function expandClients() {
       class="clients-more"
       @click="expandClients"
     >
-      <Text> +{{ moreCount }} more </Text>
+      <Text>View {{ moreCount }} more </Text>
     </button>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.clients-wrap {
-  margin-bottom: var(--unit-bigger);
-}
-
 .clients {
   list-style: none;
   padding: 0;
@@ -180,6 +176,9 @@ async function expandClients() {
   color: var(--foreground-tertiary);
   font: inherit;
   margin-top: 0.15em;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  text-decoration-thickness: 0.05em;
 
   &:hover {
     color: var(--foreground-primary);

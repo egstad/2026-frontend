@@ -69,23 +69,13 @@ onUnmounted(() => {
   z-index: 100;
 
   .wrapper {
+    padding: var(--unit-tiny);
     transition: transform var(--transition);
     transform: translate3d(0, -150%, 0);
   }
 
   &.is-visible .wrapper {
     transform: translate3d(0, 0, 0);
-  }
-
-  nav {
-    transition: background-color var(--transition);
-    background-color: var(--background-primary);
-  }
-
-  &.is-transparent {
-    nav {
-      background-color: transparent;
-    }
   }
 }
 </style>

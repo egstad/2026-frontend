@@ -36,11 +36,11 @@ $type-scale: (
   ),
   "body-2": (
     18px,
-    25px,
+    24px,
   ),
   "body-1": (
-    26px,
-    30px,
+    24px,
+    28px,
   ),
   "headline-2": (
     35px,
@@ -72,7 +72,7 @@ $type-scale: (
 }
 
 [class^="t-"] {
-  max-width: 80ch;
+  max-width: 75ch;
 
   code {
     font-family: monospace;

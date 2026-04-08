@@ -108,9 +108,9 @@
   );
 
   // interactive
-  --interactive-primary: var(--violet-300);
-  --interactive-secondary: var(--violet-150);
-  --interactive-tertiary: var(--violet-50);
+  --interactive-primary: #3b8af9;
+  --interactive-secondary: var(--blue-150);
+  --interactive-tertiary: var(--blue-50);
 
   --link-color: var(--interactive-primary);
   --link-color-hover: var(--interactive-secondary);

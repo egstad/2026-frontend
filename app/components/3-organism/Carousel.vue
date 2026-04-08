@@ -32,8 +32,16 @@ function scheduleSTRefresh() {
 const selectedIndex = ref(0);
 const slideCount = ref(0);
 const visibleCaption = ref("");
-// Once the user navigates manually, autoplay stops for good
 const userInteracted = ref(false);
+const ringFillEl = ref<SVGCircleElement | null>(null);
+
+function restartRing() {
+  const el = ringFillEl.value;
+  if (!el) return;
+  el.style.animation = "none";
+  el.getBoundingClientRect(); // force reflow so the browser registers the reset
+  el.style.animation = "";
+}
 
 // CSS animation duration driven by the autoplay delay prop
 const ringDuration = computed(() => `${props.autoplayDelay}ms`);
@@ -110,6 +118,7 @@ function onSelect() {
   const idx = embla?.selectedScrollSnap() ?? 0;
   const newCaption = props.captions?.[idx] ?? "";
   selectedIndex.value = idx;
+  restartRing();
 
   if (!captionEl.value || !visibleCaption.value) {
     typewriteCaption(newCaption);
@@ -159,14 +168,34 @@ onMounted(() => {
 });
 
 function onCarouselEnter() {
-  if (props.autoplay && !userInteracted.value) startAutoplay();
+  if (props.autoplay && !userInteracted.value) {
+    restartRing();
+    startAutoplay();
+  }
 }
 
 function onCarouselLeave() {
-  if (props.autoplay) stopAutoplay();
+  if (!props.autoplay) return;
+  stopAutoplay();
+  if (ringFillEl.value) ringFillEl.value.style.animationPlayState = "paused";
 }
 
+function onVisibilityChange() {
+  if (!props.autoplay) return;
+  if (document.hidden) {
+    stopAutoplay();
+  } else if (!userInteracted.value) {
+    restartRing();
+    startAutoplay();
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("visibilitychange", onVisibilityChange);
+});
+
 onUnmounted(() => {
+  document.removeEventListener("visibilitychange", onVisibilityChange);
   if (refreshTimer) clearTimeout(refreshTimer);
   gsap.killTweensOf(typewriter);
   embla?.destroy();
@@ -227,7 +256,6 @@ onUnmounted(() => {
           <Transition name="ring-fade">
             <svg
               v-if="autoplay && !userInteracted"
-              :key="selectedIndex"
               class="carousel__ring"
               width="14"
               height="14"
@@ -242,6 +270,7 @@ onUnmounted(() => {
                 stroke-width="1"
               />
               <circle
+                ref="ringFillEl"
                 class="carousel__ring-fill"
                 cx="7"
                 cy="7"

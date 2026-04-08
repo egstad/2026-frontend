@@ -15,7 +15,7 @@
 
 :root {
   // --grid-margin: clamp(var(--unit-smaller), 4vw, var(--unit-big));
-  --grid-margin: var(--unit-tiny);
+  --grid-margin: var(--unit-smaller);
   --grid-gap: var(--unit-tiny);
 }
 

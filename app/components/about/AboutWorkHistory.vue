@@ -121,7 +121,7 @@ watch(activeId, (newId, oldId) => {
   }
 });
 
-onMounted(() => {
+onMounted(async () => {
   const mobileImages =
     listEl.value?.querySelectorAll<HTMLElement>(".work-image-mobile");
   if (mobileImages?.length)
@@ -131,6 +131,9 @@ onMounted(() => {
 
   window.addEventListener("scroll", onWindowScroll, { passive: true });
 
+  // Wait for Vue's DOM updates to flush before measuring positions
+  await nextTick();
+
   // Container trigger: clears selection when the whole list leaves view.
   // Per-item triggers only ever SET the active id so there is no gap
   // between adjacent items where nothing is selected.
@@ -138,6 +141,7 @@ onMounted(() => {
     trigger: listEl.value,
     start: "top bottom",
     end: "bottom top",
+    invalidateOnRefresh: true,
     onLeave: () => {
       scrollActiveId.value = null;
     },
@@ -155,6 +159,7 @@ onMounted(() => {
       trigger: entry,
       start: "top 50%",
       end: "bottom 50%",
+      invalidateOnRefresh: true,
       onEnter: () => {
         scrollActiveId.value = id;
       },
@@ -165,6 +170,10 @@ onMounted(() => {
 
     triggers.push(trigger);
   });
+
+  // Refresh after setup so initial positions account for any content
+  // (carousel images, fonts) that settled before this component mounted
+  ScrollTrigger.refresh();
 });
 
 onUnmounted(() => {

@@ -48,7 +48,13 @@ onMounted(() => {
   embla = EmblaCarousel(
     viewportEl.value,
     { loop: true, dragFree: true, align: "start" },
-    [AutoScroll({ speed: props.speed ?? 0.4, startDelay: 0, stopOnInteraction: false })],
+    [
+      AutoScroll({
+        speed: props.speed ?? 0.4,
+        startDelay: 0,
+        stopOnInteraction: false,
+      }),
+    ],
   );
 
   // Once Embla has measured slides and images have settled, re-measure all
@@ -178,7 +184,8 @@ onUnmounted(() => {
 }
 
 .carousel__container {
-  --carousel-height: clamp(240px, 40vmin, 640px);
+  --carousel-height: clamp(240px, 50vmin, 640px);
+  max-height: 720px;
   display: flex;
   align-items: flex-start;
   touch-action: pan-y;

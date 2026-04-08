@@ -169,16 +169,20 @@ html {
 }
 
 a {
-  // color: var(--interactive-primary);
-  text-underline-offset: 0.15em;
   color: inherit;
-  text-decoration-thickness: 0.05em;
-  text-decoration-color: var(--interactive-tertiary);
+  color: var(--interactive-primary);
+  text-underline-offset: 0.175em;
+  text-decoration-thickness: 0.06em;
+  text-decoration-color: transparent;
   text-decoration-skip-ink: all;
+  transition:
+    text-decoration-color var(--transition-fast),
+    color var(--transition-fast);
   // text-decoration-style: dotted;
 
   &:hover {
-    color: var(--interactive-secondary);
+    text-decoration-color: var(--interactive-primary);
+    color: var(--foreground-primary);
   }
 }
 
@@ -188,4 +192,9 @@ hr {
   margin: 0;
   border: 0;
   border-bottom: 1px solid var(--border-primary);
+}
+
+::selection {
+  background: color-mix(var(--interactive-primary) 50%, transparent);
+  color: var(--foreground-primary);
 }
