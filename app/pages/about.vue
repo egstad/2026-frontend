@@ -129,9 +129,9 @@ const orderedPortraits = computed(() => {
           typefaces, imagery, and the systems that hold them together.
         </Text>
         <Text size="body-1" indent>
-          Over time, I’ve learned work can only be as strong as the idea(s)
-          behind it. I spend time trying to uncover what those ideas are, then
-          give them form. I begin with inquiry and move between research and
+          Over time, I’ve learned work can only be as strong as the ideas behind
+          it. I spend time trying to uncover what those ideas are, then give
+          them form. I begin with inquiry and move between research and
           instinct, shaping and reshaping until something feels clear and
           enduring.
         </Text>
@@ -283,6 +283,17 @@ const orderedPortraits = computed(() => {
       <AboutCarousel v-if="greats?.length" :items="greats" class="my-bigger" />
     </ClientOnly>
 
+    <Grid class="press mt-biggest">
+      <Column span-tablet="3" span-laptop="2">
+        <h2 class="section-label t-indent">
+          <Text color="dimmer">Press</Text>
+        </h2>
+      </Column>
+      <Column span-tablet="9" class="t-paragraph-leading">
+        <AboutPress />
+      </Column>
+    </Grid>
+
     <Grid class="footprint mt-biggest">
       <Column span-tablet="3" span-laptop="2">
         <h2 class="section-label t-indent">
@@ -363,7 +374,7 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid class="land mt-biggest">
+    <Grid class="colophon mt-biggest">
       <Column span-tablet="3" span-laptop="2">
         <h2 class="section-label t-indent">
           <Text color="dimmer">Colophon</Text>
@@ -371,10 +382,18 @@ const orderedPortraits = computed(() => {
       </Column>
       <Column span-tablet="9" class="t-paragraph-leading">
         <Text font="times-seven" indent>
-          This site is set in <Text is="span">Metaphor</Text>,
+          This site is set in <Text is="span" class="metaphor">Metaphor</Text>,
           <Text is="span" font="times-seven">Times Seven</Text>, and
-          <Text is="span" font="times-ten">Times Ten</Text>—typefaces I use
-          throughout, some drawn by my own hand. Content is managed through
+          <Text is="span" font="times-ten">Times Ten</Text>.Metaphor is a
+          sans-serif I drew from scratch, shaped by the grotesques I return to
+          most, designed to hold up at both small and large sizes. Times seven
+          is a custom modification of Times, with adjusted characters and
+          tightened kerning, used for smaller body copy. Times Ten is set for
+          larger passages, with a lower x-height and more generous
+          tracking.</Text
+        >
+        <Text font="times-seven" indent>
+          Content is managed through
           <a href="https://sanity.io/" target="_blank">Sanity</a>, video is
           powered by <a href="https://www.mux.com/" target="_blank">Mux</a>, and
           the code lives on
@@ -453,31 +472,15 @@ const orderedPortraits = computed(() => {
       font-size: var(--t-body-1-size);
       line-height: var(--t-body-1-leading);
     }
+
+    @include fluidScale(t-size("body-1"), t-leading("body-1"));
   }
 }
 
-.details {
-  --link-color: var(--orange-300);
-  --link-color-hover: var(--orange-150);
-}
-
-.clients {
-  --link-color: var(--yellow-150);
-  --link-color-hover: var(--yellow-50);
-}
-
-.work {
-  --link-color: var(--green-300);
-  --link-color-hover: var(--green-150);
-}
-
-.history {
-  --link-color: var(--blue-150);
-  --link-color-hover: var(--blue-50);
-}
-
-.footprint {
-  --link-color: var(--violet-300);
-  --link-color-hover: var(--violet-150);
+.colophon {
+  .metaphor {
+    font-family: "DBC Metaphor" !important;
+    font-variation-settings: "wght" 550;
+  }
 }
 </style>
