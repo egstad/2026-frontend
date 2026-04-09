@@ -14,7 +14,7 @@
           <!-- <HeaderNav /> -->
         </div>
       </header>
-      <Debug />
+      <Debug v-if="isDev" />
     </Column>
   </Grid>
 </template>

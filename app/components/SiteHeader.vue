@@ -8,16 +8,18 @@
             <Text>{{ page.label }}</Text>
           </NuxtLink>
         </li>
-        <li>
-          <button
-            class="nav-link egg-btn"
-            :class="{ 'is-active': eggActive }"
-            @click="toggleEgg"
-            aria-label="Toggle easter egg mode"
-          >
-            <Text>{{ eggActive ? "🍳" : "🥚" }}</Text>
-          </button>
-        </li>
+        <ClientOnly>
+          <li>
+            <button
+              class="nav-link egg-btn"
+              :class="{ 'is-active': eggActive }"
+              @click="toggleEgg"
+              aria-label="Toggle easter egg mode"
+            >
+              <Text>{{ eggActive ? "🍳" : "🥚" }}</Text>
+            </button>
+          </li>
+        </ClientOnly>
       </ul>
     </Column>
 
@@ -105,7 +107,7 @@ interface Section {
 
 const route = useRoute();
 const { isActive: eggActive, toggle: toggleEgg } = useEggMode();
-const workCategories = useWorkCategories();
+const { data: workCategories } = await useWorkCategories();
 const activeSection = ref("");
 const subnavEl = ref<HTMLElement | null>(null);
 

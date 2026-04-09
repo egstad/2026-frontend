@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { sanityClient } from "~/utils/sanity";
-import type { Artifact, Category } from "~/types/sanity";
+import type { Artifact } from "~/types/sanity";
 import { useArtifactStore } from "~/stores/artifact";
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
@@ -17,7 +17,6 @@ const nuxtApp = useNuxtApp();
 const route = useRoute();
 const router = useRouter();
 const artifactStore = useArtifactStore();
-const workCategories = useWorkCategories();
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -59,24 +58,6 @@ const activeCategory = computed(
 function setCategory(slug: string | null) {
   router.push({ query: slug ? { category: slug } : {} });
 }
-
-// Derive available categories from artifact data — no second Sanity fetch needed
-const availableCategories = computed(() => {
-  const seen = new Map<string, Category>();
-  for (const item of media.value ?? []) {
-    item.categories?.forEach((c) => seen.set(c._id, c));
-  }
-  return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
-});
-
-// Sync to shared state so SiteHeader subnav can read it
-watch(
-  availableCategories,
-  (cats) => {
-    workCategories.value = cats;
-  },
-  { immediate: true },
-);
 
 // ─── Sort ─────────────────────────────────────────────────────────────────────
 
@@ -173,6 +154,59 @@ let sentinelObserver: IntersectionObserver | null = null;
 
 const visibleMedia = computed(() =>
   displayMedia.value.slice(0, visibleCount.value),
+);
+
+// ─── LCP preload links ────────────────────────────────────────────────────────
+// NuxtImg's built-in `preload` prop emits a <link rel="preload"> without
+// fetchpriority, so Lighthouse reports priorityHinted: false. We inject our
+// own links here with fetchpriority="high" and disable NuxtImg's automatic
+// preload in Pic.vue for the priority images.
+
+const img = useImage();
+
+function cdnUrlToAssetPath(url: string): string | null {
+  const pathWithoutParams = url.split("?")[0];
+  const segments = pathWithoutParams!.split("/");
+  const filename = segments[segments.length - 1];
+  if (!filename) return null;
+  const lastDot = filename.lastIndexOf(".");
+  if (lastDot === -1) return null;
+  const name = filename.substring(0, lastDot);
+  const ext = filename.substring(lastDot + 1);
+  return `image-${name}-${ext}`;
+}
+
+const priorityImages = computed(() => {
+  const result: Artifact[] = [];
+  for (const item of visibleMedia.value) {
+    if (result.length >= 3) break;
+    if (item.imageUrl && item.mediaType !== "video") result.push(item);
+  }
+  return result;
+});
+
+useHead(
+  computed(() => ({
+    link: priorityImages.value.flatMap((item) => {
+      const assetPath = cdnUrlToAssetPath(item.imageUrl!);
+      if (!assetPath) return [];
+      const aspect = item.imageMeta?.dimensions
+        ? item.imageMeta.dimensions.width / item.imageMeta.dimensions.height
+        : 1;
+      const w = Math.round(rowHeight.value * aspect);
+      // Match NuxtImg's rendered srcset: no explicit quality, cover 1x + 2x DPR
+      const make = (px: number) =>
+        img(assetPath, { width: px }, { provider: "sanity" });
+      return [
+        {
+          rel: "preload",
+          as: "image",
+          imagesrcset: `${make(w)} 1x, ${make(w * 2)} 2x`,
+          fetchpriority: "high",
+        },
+      ];
+    }),
+  })),
 );
 
 // Reset to first page when filter or sort changes
