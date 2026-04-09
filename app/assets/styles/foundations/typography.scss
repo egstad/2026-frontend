@@ -183,6 +183,7 @@ $type-scale: (
 @font-face {
   src: url("~/assets/fonts/DBC-MetaphorGX.ttf");
   font-family: "DBC Metaphor";
+  font-display: swap;
 }
 
 @font-face {
@@ -190,6 +191,7 @@ $type-scale: (
   font-family: "Times Seven";
   font-style: normal;
   font-weight: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -197,6 +199,7 @@ $type-scale: (
   font-family: "Times Seven";
   font-style: italic;
   font-weight: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -204,6 +207,7 @@ $type-scale: (
   font-family: "Times Ten";
   font-style: normal;
   font-weight: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -211,4 +215,5 @@ $type-scale: (
   font-family: "Times Ten";
   font-style: italic;
   font-weight: normal;
+  font-display: swap;
 }

@@ -87,10 +87,10 @@ defineProps({
 }
 
 .--font-seven {
-  font-family: "Times Seven", serif;
+  font-family: "Times Seven", "Times New Roman", Times, serif;
 }
 
 .--font-ten {
-  font-family: "Times Ten", serif;
+  font-family: "Times Ten", "Times New Roman", Times, serif;
 }
 </style>

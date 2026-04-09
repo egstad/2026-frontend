@@ -5,6 +5,7 @@ import {sanityImageUrl} from '~/utils/sanityImage'
 const props = defineProps<{
   media: Artifact
   rowHeight?: number
+  priority?: boolean
 }>()
 
 // Check if this is a video
@@ -88,7 +89,8 @@ const sizesHint = computed(() => {
       :height="height"
       :external="true"
       :sizes="sizesHint"
-      loading="lazy"
+      :priority="priority"
+      :loading="priority ? 'eager' : 'lazy'"
     />
     <!-- Fallback -->
     <div v-else class="placeholder" />

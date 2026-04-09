@@ -13,10 +13,11 @@
       :height="height"
       :sizes="computedSizes"
       :placeholder="placeholder"
-      :loading="loading"
+      :loading="priority ? 'eager' : loading"
       :quality="quality"
       :densities="densities"
-      :preload="preload"
+      :preload="priority || preload"
+      v-bind="priority ? { fetchpriority: 'high' } : {}"
       @load="onLoad"
       @error="onError"
       class="pic__image"
@@ -32,7 +33,8 @@
       :alt="alt"
       :width="width"
       :height="height"
-      :loading="loading"
+      :loading="priority ? 'eager' : loading"
+      :fetchpriority="priority ? 'high' : undefined"
       @load="onLoad"
       @error="onError"
       class="pic__image"
@@ -48,11 +50,12 @@
       :height="height"
       :sizes="computedSizes"
       :placeholder="placeholder"
-      :loading="loading"
+      :loading="priority ? 'eager' : loading"
       :quality="computedQuality"
       :format="format"
       :densities="densities"
-      :preload="preload"
+      :preload="priority || preload"
+      v-bind="priority ? { fetchpriority: 'high' } : {}"
       @load="onLoad"
       @error="onError"
       class="pic__image"
@@ -120,6 +123,10 @@ const props = defineProps({
     default: "1x 2x",
   },
   preload: {
+    type: Boolean,
+    default: false,
+  },
+  priority: {
     type: Boolean,
     default: false,
   },

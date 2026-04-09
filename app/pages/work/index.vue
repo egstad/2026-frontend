@@ -266,10 +266,11 @@ onUnmounted(() => {
         v-if="displayMedia.length"
       >
         <MediaCard
-          v-for="item in visibleMedia"
+          v-for="(item, index) in visibleMedia"
           :key="item._id"
           :media="item"
           :row-height="rowHeight"
+          :priority="index < 3"
         />
       </div>
 
