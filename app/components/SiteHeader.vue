@@ -8,6 +8,16 @@
             <Text>{{ page.label }}</Text>
           </NuxtLink>
         </li>
+        <li>
+          <button
+            class="nav-link egg-btn"
+            :class="{ 'is-active': eggActive }"
+            @click="toggleEgg"
+            aria-label="Toggle easter egg mode"
+          >
+            <Text>{{ eggActive ? "🍳" : "🥚" }}</Text>
+          </button>
+        </li>
       </ul>
     </Column>
 
@@ -72,6 +82,7 @@
 
 <script setup lang="ts">
 import { gsap } from "gsap";
+import { useEggMode } from "~/composables/useEggMode";
 
 interface Section {
   label: string;
@@ -79,6 +90,7 @@ interface Section {
 }
 
 const route = useRoute();
+const { isActive: eggActive, toggle: toggleEgg } = useEggMode();
 const activeSection = ref("");
 const subnavEl = ref<HTMLElement | null>(null);
 
@@ -234,7 +246,6 @@ function onLeaveComplete() {
 
 onMounted(() => {
   setupObserver();
-  nextTick(animateIn);
   window.addEventListener("page:leave-complete", onLeaveComplete);
 });
 
@@ -283,5 +294,16 @@ onUnmounted(() => {
   //   cursor: default;
   //   opacity: 0.4;
   // }
+}
+
+.egg-btn {
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+
+  &:hover,
+  &.is-active {
+    opacity: 1;
+    color: var(--foreground-quaternary);
+  }
 }
 </style>
