@@ -13,7 +13,7 @@ export default function pageTransitionDefault(): TransitionProps {
     onBeforeEnter: (el) => {
       gsap.set(el, {
         opacity: 0,
-        y: "1rem",
+        // y: "1rem",
       });
     },
     onEnter: (el, done) => {
@@ -22,10 +22,10 @@ export default function pageTransitionDefault(): TransitionProps {
       gsap.to(el, {
         ease: "expo.out",
         duration: 1,
-        delay: 0.5,
+        delay: 0.25,
         opacity: 1,
-        y: 0,
-        rotate: 0,
+        // y: 0,
+        // rotate: 0,
         onComplete: () => {
           app.setRouteIsTransitioning(false);
           done();
@@ -37,8 +37,11 @@ export default function pageTransitionDefault(): TransitionProps {
         ease: "Power2.easeIn",
         duration: 0.4,
         opacity: 0,
-        y: "1rem",
-        onComplete: done,
+        // y: "1rem",
+        onComplete: () => {
+          window.dispatchEvent(new CustomEvent("page:leave-complete"));
+          done();
+        },
       });
     },
   };

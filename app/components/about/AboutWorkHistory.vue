@@ -14,6 +14,7 @@ const isMouseOverList = ref(false);
 const mousePos = { x: 0, y: 0 };
 const expandedId = ref<string | null>(null);
 const triggers: ScrollTrigger[] = [];
+let resizeObserver: ResizeObserver | null = null;
 
 // Hover takes priority over scroll; scrolling cancels hover
 const activeId = computed(() =>
@@ -121,6 +122,48 @@ watch(activeId, (newId, oldId) => {
   }
 });
 
+function setupTriggers() {
+  // Kill any existing triggers before re-creating
+  triggers.forEach((t) => t.kill());
+  triggers.length = 0;
+
+  if (!listEl.value) return;
+
+  const containerTrigger = ScrollTrigger.create({
+    trigger: listEl.value,
+    start: "top bottom",
+    end: "bottom top",
+    invalidateOnRefresh: true,
+    onLeave: () => { scrollActiveId.value = null; },
+    onLeaveBack: () => { scrollActiveId.value = null; },
+  });
+  triggers.push(containerTrigger);
+
+  const entries = listEl.value.querySelectorAll<HTMLElement>(".work-entry");
+  entries.forEach((entry) => {
+    const id = entry.dataset.id!;
+    const trigger = ScrollTrigger.create({
+      trigger: entry,
+      start: "top 50%",
+      end: "bottom 50%",
+      invalidateOnRefresh: true,
+      onEnter: () => { scrollActiveId.value = id; },
+      onEnterBack: () => { scrollActiveId.value = id; },
+    });
+    triggers.push(trigger);
+  });
+
+  ScrollTrigger.refresh();
+}
+
+// Wait for Vue DOM flush + two paint frames so the browser has actually
+// laid out the page before ScrollTrigger measures positions.
+function afterPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
 onMounted(async () => {
   const mobileImages =
     listEl.value?.querySelectorAll<HTMLElement>(".work-image-mobile");
@@ -131,53 +174,26 @@ onMounted(async () => {
 
   window.addEventListener("scroll", onWindowScroll, { passive: true });
 
-  // Wait for Vue's DOM updates to flush before measuring positions
   await nextTick();
+  await afterPaint();
 
-  // Container trigger: clears selection when the whole list leaves view.
-  // Per-item triggers only ever SET the active id so there is no gap
-  // between adjacent items where nothing is selected.
-  const containerTrigger = ScrollTrigger.create({
-    trigger: listEl.value,
-    start: "top bottom",
-    end: "bottom top",
-    invalidateOnRefresh: true,
-    onLeave: () => {
-      scrollActiveId.value = null;
-    },
-    onLeaveBack: () => {
-      scrollActiveId.value = null;
-    },
-  });
-  triggers.push(containerTrigger);
+  setupTriggers();
 
-  const entries = listEl.value?.querySelectorAll<HTMLElement>(".work-entry");
-  entries?.forEach((entry) => {
-    const id = entry.dataset.id!;
+  // Refresh again once all images/fonts have loaded (catches late layout shifts)
+  if (document.readyState !== "complete") {
+    window.addEventListener("load", () => ScrollTrigger.refresh(), { once: true });
+  }
 
-    const trigger = ScrollTrigger.create({
-      trigger: entry,
-      start: "top 50%",
-      end: "bottom 50%",
-      invalidateOnRefresh: true,
-      onEnter: () => {
-        scrollActiveId.value = id;
-      },
-      onEnterBack: () => {
-        scrollActiveId.value = id;
-      },
-    });
-
-    triggers.push(trigger);
-  });
-
-  // Refresh after setup so initial positions account for any content
-  // (carousel images, fonts) that settled before this component mounted
-  ScrollTrigger.refresh();
+  // Also refresh whenever the list changes height (e.g. expanded mobile rows)
+  if (listEl.value) {
+    resizeObserver = new ResizeObserver(() => ScrollTrigger.refresh());
+    resizeObserver.observe(listEl.value);
+  }
 });
 
 onUnmounted(() => {
   triggers.forEach((t) => t.kill());
+  resizeObserver?.disconnect();
   window.removeEventListener("scroll", onWindowScroll);
 });
 </script>
