@@ -108,20 +108,20 @@ const orderedPortraits = computed(() => {
 
 <template>
   <div class="about-page">
-    <Grid class="intro">
-      <Column span-tablet="3" span-laptop="2">
+    <Grid id="intro" class="intro">
+      <Column span-tablet="3" span-desktop="2">
         <h2 class="section-label t-indent">
-          <Text color="dimmer">Intro</Text>
+          <Text color="dimmer" size="caption-1">Intro</Text>
         </h2>
       </Column>
       <Column
         span-tablet="9"
-        start-laptop="3"
+        start-desktop="3"
         span-desktop="8"
         class="t-paragraph-leading"
       >
         <Text size="body-1" indent>
-          Hello, I’m Jordan Egstad. I’m a designer and developer, and a creative
+          Hello, I’m Jordan Egstad. I’m a graphic designer, developer, and a
           partner at
           <a href="https://dbco.online/" target="_blank"
             >Design Business Company</a
@@ -166,10 +166,10 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid class="details mt-biggest">
-      <Column span-tablet="3" span-laptop="2">
+    <Grid id="details" class="details mt-biggest">
+      <Column span-tablet="3" span-desktop="2">
         <h2 class="section-label t-indent">
-          <Text color="dimmer">Details</Text>
+          <Text color="dimmer" size="caption-1">Details</Text>
         </h2>
       </Column>
       <Column span-tablet="9" class="t-paragraph-leading">
@@ -191,10 +191,10 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid v-if="clients?.length" class="clients mt-biggest">
-      <Column span-tablet="3" span-laptop="2">
+    <Grid v-if="clients?.length" id="clients" class="clients mt-biggest">
+      <Column span-tablet="3" span-desktop="2">
         <h2 class="section-label t-indent">
-          <Text color="dimmer">Clients</Text>
+          <Text color="dimmer" size="caption-1">Clients</Text>
         </h2>
       </Column>
       <Column span-tablet="9">
@@ -202,10 +202,10 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid v-if="workHistory?.length" class="work mt-biggest">
-      <Column span-tablet="3" span-laptop="2">
+    <Grid v-if="workHistory?.length" id="work" class="work mt-biggest">
+      <Column span-tablet="3" span-desktop="2">
         <h2 class="section-label t-indent">
-          <Text color="dimmer">Work</Text>
+          <Text color="dimmer" size="caption-1">Work</Text>
         </h2>
       </Column>
       <Column span-tablet="8" span-laptop="10" span-desktop="8">
@@ -213,20 +213,32 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid class="history mt-biggest">
-      <Column span-tablet="3" span-laptop="2">
+    <Grid id="press" class="press mt-biggest">
+      <Column span-tablet="3" span-desktop="2">
         <h2 class="section-label t-indent">
-          <Text color="dimmer">History</Text>
+          <Text color="dimmer" size="caption-1">Press</Text>
+        </h2>
+      </Column>
+      <Column span-tablet="9" class="t-paragraph-leading">
+        <AboutPress />
+      </Column>
+    </Grid>
+
+    <Grid id="history" class="history mt-biggest">
+      <Column span-tablet="3" span-desktop="2">
+        <h2 class="section-label t-indent">
+          <Text color="dimmer" size="caption-1">History</Text>
         </h2>
       </Column>
       <Column span-tablet="9" class="t-paragraph-leading">
         <Text font="times-seven" indent>
-          I was eight years old when Terry Hardy, my first art teacher, asked us
-          to draw how we felt that day. It was September 12, 2001, the day after
-          the World Trade Center was reduced to rubble. I didn’t know it at the
-          time, but that simple prompt, an invitation to give shape to something
-          invisible <em>(feelings)</em>, gave my creative life an early
-          direction.
+          I consider myself fortunate to have been put on a creative path early.
+          My first real memory of making something with intention is from the
+          day after 9/11. My art teacher, Terry Hardy, asked us to draw how we
+          felt. I was eight and didn’t understand the complexities of the event,
+          only that something was deeply wrong. The assignment, though, was
+          clear: take something internal and make it visible. That premise has
+          stayed with me.
         </Text>
         <Text font="times-seven" indent>
           In middle and high school, Jennifer Van Patten expanded the world of
@@ -283,21 +295,10 @@ const orderedPortraits = computed(() => {
       <AboutCarousel v-if="greats?.length" :items="greats" class="my-bigger" />
     </ClientOnly>
 
-    <Grid class="press mt-biggest">
-      <Column span-tablet="3" span-laptop="2">
+    <Grid id="footprint" class="footprint mt-biggest">
+      <Column span-tablet="3" span-desktop="2">
         <h2 class="section-label t-indent">
-          <Text color="dimmer">Press</Text>
-        </h2>
-      </Column>
-      <Column span-tablet="9" class="t-paragraph-leading">
-        <AboutPress />
-      </Column>
-    </Grid>
-
-    <Grid class="footprint mt-biggest">
-      <Column span-tablet="3" span-laptop="2">
-        <h2 class="section-label t-indent">
-          <Text color="dimmer">Footprint</Text>
+          <Text color="dimmer" size="caption-1">Footprint</Text>
         </h2>
       </Column>
       <Column span-tablet="9">
@@ -374,10 +375,10 @@ const orderedPortraits = computed(() => {
       </Column>
     </Grid>
 
-    <Grid class="colophon mt-biggest">
-      <Column span-tablet="3" span-laptop="2">
+    <Grid id="colophon" class="colophon mt-biggest">
+      <Column span-tablet="3" span-desktop="2">
         <h2 class="section-label t-indent">
-          <Text color="dimmer">Colophon</Text>
+          <Text color="dimmer" size="caption-1">Colophon</Text>
         </h2>
       </Column>
       <Column span-tablet="9" class="t-paragraph-leading">
@@ -416,9 +417,9 @@ const orderedPortraits = computed(() => {
 
 <style lang="scss" scoped>
 .about-page {
-  padding: var(--unit-huge) 0;
+  padding: var(--unit-big) 0;
   @include laptop {
-    padding: var(--unit-huger) 0;
+    padding: var(--unit-bigger) 0;
   }
 
   // background: url(https://www.geocities.ws/lotsanimations/images/4-tile.jpg);
@@ -457,7 +458,7 @@ const orderedPortraits = computed(() => {
   --link-color-hover: var(--red-150);
 
   .--indent {
-    @media screen and (max-width: $laptop) {
+    @media screen and (max-width: $tablet) {
       text-indent: 0;
     }
   }
@@ -467,7 +468,7 @@ const orderedPortraits = computed(() => {
     font-size: var(--t-body-2-size);
     line-height: var(--t-body-2-leading);
 
-    @include laptop {
+    @include tablet {
       font-family: "Times Ten";
       font-size: var(--t-body-1-size);
       line-height: var(--t-body-1-leading);

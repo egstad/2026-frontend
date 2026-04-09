@@ -11,7 +11,7 @@
         ]"
       >
         <div class="wrapper">
-          <HeaderNav />
+          <!-- <HeaderNav /> -->
         </div>
       </header>
       <Debug />
@@ -69,7 +69,6 @@ onUnmounted(() => {
   z-index: 100;
 
   .wrapper {
-    padding: var(--unit-tiny);
     transition: transform var(--transition);
     transform: translate3d(0, -150%, 0);
   }

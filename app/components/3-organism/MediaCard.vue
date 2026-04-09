@@ -60,7 +60,7 @@ const aspectRatio = computed(() => {
 
 <template>
   <NuxtLink
-    :to="`/artifact/${media.slug.current}`"
+    :to="`/work/${media.slug.current}`"
     class="media-card"
     :style="{ '--aspect': aspectRatio }"
     @mouseenter="onHover"

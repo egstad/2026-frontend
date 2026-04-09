@@ -63,7 +63,7 @@ definePageMeta({
 
 <template>
   <div class="media-detail" v-if="media">
-    <NuxtLink to="/artifact" class="back">← Back to artifacts</NuxtLink>
+    <NuxtLink to="/work" class="back">← Back to work</NuxtLink>
 
     <div class="media-container">
       <MediaEmbed :media="media" size="large" />

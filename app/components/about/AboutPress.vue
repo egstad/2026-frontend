@@ -163,7 +163,7 @@ const interviews: PressItem[] = [
   },
   {
     title: "The Old Brand Temple Is Collapsing",
-    publisher: "You Need to Touch Grass",
+    publisher: "Touch Grass",
     date: "29 Jul. 2025",
     link: "https://youneedtotouchgrass.substack.com/p/the-old-brand-temple-is-collapsing",
   },

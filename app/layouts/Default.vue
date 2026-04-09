@@ -1,6 +1,7 @@
 <template>
   <div class="site-wrapper">
     <Header />
+    <SiteHeader />
     <main class="site-content">
       <Scrim />
       <NuxtPage />
