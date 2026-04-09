@@ -1,5 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  routeRules: {
+    "/work": { isr: 60 * 10 }, // revalidate every 10 min
+  },
   modules: ["@pinia/nuxt", "@nuxt/image"],
   image: {
     sanity: {

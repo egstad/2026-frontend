@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { sanityClient } from "~/utils/sanity";
-import type { Artifact, Category, Tag, Client } from "~/types/sanity";
+import type { Artifact, Category } from "~/types/sanity";
 import { useArtifactStore } from "~/stores/artifact";
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
@@ -14,9 +14,13 @@ definePageMeta({
 });
 
 const nuxtApp = useNuxtApp();
+const route = useRoute();
+const router = useRouter();
 const artifactStore = useArtifactStore();
+const workCategories = useWorkCategories();
 
-// Fetch all media with their relationships
+// ─── Data ─────────────────────────────────────────────────────────────────────
+
 const { data: media } = await useAsyncData(
   "artifact",
   () =>
@@ -37,9 +41,7 @@ const { data: media } = await useAsyncData(
       "videoMeta": {
         "aspectRatio": video.asset->data.aspect_ratio
       },
-      "categories": categories[]->{ _id, name, slug },
-      "tags": tags[]->{ _id, name, slug },
-      "clients": clients[]->{ _id, name, slug }
+      "categories": categories[]->{ _id, name, slug }
     }
   `),
   {
@@ -48,38 +50,48 @@ const { data: media } = await useAsyncData(
   },
 );
 
-// Fetch filter options
-const { data: filterOptions } = await useAsyncData(
-  "artifact-filters",
-  () =>
-    sanityClient.fetch<{
-      categories: Category[];
-      tags: Tag[];
-      clients: Client[];
-    }>(`{
-      "categories": *[_type == "category"] | order(name asc) { _id, name, slug },
-      "tags": *[_type == "tag"] | order(name asc) { _id, name, slug },
-      "clients": *[_type == "client"] | order(name asc) { _id, name, slug }
-    }`),
-  {
-    getCachedData: (key) =>
-      nuxtApp.payload.data[key] || nuxtApp.static.data[key],
-  },
+// ─── Category filter (URL query param) ────────────────────────────────────────
+
+const activeCategory = computed(
+  () => route.query.category as string | undefined,
 );
 
-// Filter state
-const activeFilters = reactive({
-  mediaType: null as "image" | "video" | null,
-  categories: [] as string[],
-  tags: [] as string[],
-  clients: [] as string[],
+function setCategory(slug: string | null) {
+  router.push({ query: slug ? { category: slug } : {} });
+}
+
+// Derive available categories from artifact data — no second Sanity fetch needed
+const availableCategories = computed(() => {
+  const seen = new Map<string, Category>();
+  for (const item of media.value ?? []) {
+    item.categories?.forEach((c) => seen.set(c._id, c));
+  }
+  return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
 });
 
-// Sort state
+// Sync to shared state so SiteHeader subnav can read it
+watch(
+  availableCategories,
+  (cats) => {
+    workCategories.value = cats;
+  },
+  { immediate: true },
+);
+
+// ─── Sort ─────────────────────────────────────────────────────────────────────
+
 type SortOption = "random" | "newest" | "oldest";
 const activeSort = ref<SortOption>("random");
 
-// View state
+function setSort(option: SortOption) {
+  if (option === "random" && activeSort.value === "random") {
+    artifactStore.reshuffle();
+  }
+  activeSort.value = option;
+}
+
+// ─── View ─────────────────────────────────────────────────────────────────────
+
 type ViewOption = "inline" | "inline-small" | "feed";
 const activeView = ref<ViewOption>("inline");
 
@@ -88,49 +100,8 @@ const rowHeight = computed(() => {
   return 330;
 });
 
-// Check if any filters are active
-const hasActiveFilters = computed(() => {
-  return (
-    activeFilters.mediaType !== null ||
-    activeFilters.categories.length > 0 ||
-    activeFilters.tags.length > 0 ||
-    activeFilters.clients.length > 0
-  );
-});
+// ─── Shuffle ──────────────────────────────────────────────────────────────────
 
-// Clear all filters
-function clearFilters() {
-  activeFilters.mediaType = null;
-  activeFilters.categories = [];
-  activeFilters.tags = [];
-  activeFilters.clients = [];
-}
-
-// Toggle a filter value
-function toggleFilter(type: "categories" | "tags" | "clients", id: string) {
-  const index = activeFilters[type].indexOf(id);
-  if (index === -1) {
-    activeFilters[type].push(id);
-  } else {
-    activeFilters[type].splice(index, 1);
-  }
-}
-
-// Toggle media type filter
-function toggleMediaType(type: "image" | "video") {
-  activeFilters.mediaType = activeFilters.mediaType === type ? null : type;
-}
-
-// Set sort option (reshuffle if clicking random again)
-function setSort(option: SortOption) {
-  if (option === "random" && activeSort.value === "random") {
-    // Already on random, reshuffle
-    artifactStore.reshuffle();
-  }
-  activeSort.value = option;
-}
-
-// Seeded random number generator (mulberry32)
 function seededRandom(seed: number) {
   return function () {
     let t = (seed += 0x6d2b79f5);
@@ -140,7 +111,6 @@ function seededRandom(seed: number) {
   };
 }
 
-// Seeded Fisher-Yates shuffle
 function seededShuffle<T>(array: T[], seed: number): T[] {
   const result = [...array];
   const random = seededRandom(seed);
@@ -153,13 +123,11 @@ function seededShuffle<T>(array: T[], seed: number): T[] {
   return result;
 }
 
-// Shuffled media based on stored seed (recomputes when seed changes)
 const shuffledMedia = computed(() => {
   if (!media.value?.length) return [];
   return seededShuffle(media.value, artifactStore.randomSeed);
 });
 
-// Get sorted media based on active sort
 const sortedMedia = computed(() => {
   const items = media.value;
   const sort = activeSort.value;
@@ -182,48 +150,53 @@ const sortedMedia = computed(() => {
     });
   }
 
-  // Default to random/shuffled (seeded for persistence)
   return shuffledMedia.value;
 });
 
-// Filtered media based on active filters
+// ─── Display (filtered + category) ───────────────────────────────────────────
+
 const displayMedia = computed(() => {
-  if (!sortedMedia.value.length) return [];
+  const cat = activeCategory.value;
+  const items = sortedMedia.value;
+  if (!cat) return items;
+  return items.filter((item) =>
+    item.categories?.some((c) => c.slug?.current === cat),
+  );
+});
 
-  return sortedMedia.value.filter((item) => {
-    // Media type filter
-    if (activeFilters.mediaType && item.mediaType !== activeFilters.mediaType) {
-      return false;
-    }
+// ─── Batch rendering ──────────────────────────────────────────────────────────
 
-    // Category filter (match any selected)
-    if (activeFilters.categories.length > 0) {
-      const itemCategoryIds = item.categories?.map((c) => c._id) || [];
-      if (
-        !activeFilters.categories.some((id) => itemCategoryIds.includes(id))
-      ) {
-        return false;
+const PAGE_SIZE = 50;
+const visibleCount = ref(PAGE_SIZE);
+const sentinelEl = ref<HTMLElement | null>(null);
+let sentinelObserver: IntersectionObserver | null = null;
+
+const visibleMedia = computed(() =>
+  displayMedia.value.slice(0, visibleCount.value),
+);
+
+// Reset to first page when filter or sort changes
+watch([activeCategory, activeSort], () => {
+  visibleCount.value = PAGE_SIZE;
+});
+
+onMounted(() => {
+  sentinelObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting) {
+        visibleCount.value = Math.min(
+          visibleCount.value + PAGE_SIZE,
+          displayMedia.value.length,
+        );
       }
-    }
+    },
+    { rootMargin: "400px" },
+  );
+  if (sentinelEl.value) sentinelObserver.observe(sentinelEl.value);
+});
 
-    // Tag filter (match any selected)
-    if (activeFilters.tags.length > 0) {
-      const itemTagIds = item.tags?.map((t) => t._id) || [];
-      if (!activeFilters.tags.some((id) => itemTagIds.includes(id))) {
-        return false;
-      }
-    }
-
-    // Client filter (match any selected)
-    if (activeFilters.clients.length > 0) {
-      const itemClientIds = item.clients?.map((c) => c._id) || [];
-      if (!activeFilters.clients.some((id) => itemClientIds.includes(id))) {
-        return false;
-      }
-    }
-
-    return true;
-  });
+onUnmounted(() => {
+  sentinelObserver?.disconnect();
 });
 </script>
 
@@ -232,73 +205,6 @@ const displayMedia = computed(() => {
     <Column>
       <header class="media-header" v-if="media?.length">
         <div class="filters">
-          <!-- Media Type -->
-          <div class="filter-group">
-            <BaseButton
-              size="small"
-              :variant="
-                activeFilters.mediaType === 'image' ? 'primary' : 'ghost'
-              "
-              @click="toggleMediaType('image')"
-            >
-              image
-            </BaseButton>
-            <BaseButton
-              size="small"
-              :variant="
-                activeFilters.mediaType === 'video' ? 'primary' : 'ghost'
-              "
-              @click="toggleMediaType('video')"
-            >
-              video
-            </BaseButton>
-          </div>
-
-          <!-- Categories -->
-          <div class="filter-group" v-if="filterOptions?.categories?.length">
-            <BaseButton
-              v-for="cat in filterOptions.categories"
-              :key="cat._id"
-              size="small"
-              :variant="
-                activeFilters.categories.includes(cat._id) ? 'primary' : 'ghost'
-              "
-              @click="toggleFilter('categories', cat._id)"
-            >
-              {{ cat.name }}
-            </BaseButton>
-          </div>
-
-          <!-- Tags -->
-          <div class="filter-group" v-if="filterOptions?.tags?.length">
-            <BaseButton
-              v-for="tag in filterOptions.tags"
-              :key="tag._id"
-              size="small"
-              :variant="
-                activeFilters.tags.includes(tag._id) ? 'primary' : 'ghost'
-              "
-              @click="toggleFilter('tags', tag._id)"
-            >
-              {{ tag.name }}
-            </BaseButton>
-          </div>
-
-          <!-- Clients -->
-          <div class="filter-group" v-if="filterOptions?.clients?.length">
-            <BaseButton
-              v-for="client in filterOptions.clients"
-              :key="client._id"
-              size="small"
-              :variant="
-                activeFilters.clients.includes(client._id) ? 'primary' : 'ghost'
-              "
-              @click="toggleFilter('clients', client._id)"
-            >
-              {{ client.name }}
-            </BaseButton>
-          </div>
-
           <!-- Sort -->
           <div class="filter-group">
             <BaseButton
@@ -348,16 +254,6 @@ const displayMedia = computed(() => {
               feed
             </BaseButton>
           </div>
-
-          <!-- Clear filters -->
-          <BaseButton
-            v-if="hasActiveFilters"
-            size="small"
-            variant="secondary"
-            @click="clearFilters"
-          >
-            clear
-          </BaseButton>
         </div>
 
         <span class="count">{{ displayMedia.length }}/{{ media.length }}</span>
@@ -369,10 +265,20 @@ const displayMedia = computed(() => {
         :style="{ '--row-height': `${rowHeight}px` }"
         v-if="displayMedia.length"
       >
-        <MediaCard v-for="item in displayMedia" :key="item._id" :media="item" />
+        <MediaCard
+          v-for="item in visibleMedia"
+          :key="item._id"
+          :media="item"
+          :row-height="rowHeight"
+        />
       </div>
 
-      <p v-else-if="hasActiveFilters" class="empty">No matches.</p>
+      <!-- Sentinel: triggers next batch when scrolled into view -->
+      <div ref="sentinelEl" class="sentinel" aria-hidden="true" />
+
+      <p v-if="!displayMedia.length && activeCategory" class="empty">
+        No matches.
+      </p>
       <p v-else-if="!media?.length" class="empty">No media yet.</p>
     </Column>
   </Grid>
@@ -443,6 +349,11 @@ const displayMedia = computed(() => {
       object-fit: contain;
     }
   }
+}
+
+.sentinel {
+  height: 1px;
+  pointer-events: none;
 }
 
 .empty {

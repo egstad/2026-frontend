@@ -38,15 +38,28 @@
           </li>
         </ul>
 
-        <!-- Work: filters (FPO) -->
+        <!-- Work: category links -->
         <ul
           v-else-if="visibleRoute === 'work' || visibleRoute === 'work-index'"
           class="nav-col"
         >
-          <li v-for="filter in workFilters" :key="filter">
-            <button class="nav-link" disabled>
-              <Text>{{ filter }}</Text>
-            </button>
+          <li>
+            <NuxtLink
+              to="/work"
+              class="nav-link"
+              :class="{ 'is-active': !route.query.category }"
+            >
+              <Text>All</Text>
+            </NuxtLink>
+          </li>
+          <li v-for="cat in workCategories" :key="cat._id">
+            <NuxtLink
+              :to="{ path: '/work', query: { category: cat.slug.current } }"
+              class="nav-link"
+              :class="{ 'is-active': route.query.category === cat.slug.current }"
+            >
+              <Text>{{ cat.name }}</Text>
+            </NuxtLink>
           </li>
         </ul>
 
@@ -83,6 +96,7 @@
 <script setup lang="ts">
 import { gsap } from "gsap";
 import { useEggMode } from "~/composables/useEggMode";
+import { useWorkCategories } from "~/composables/useWorkCategories";
 
 interface Section {
   label: string;
@@ -91,6 +105,7 @@ interface Section {
 
 const route = useRoute();
 const { isActive: eggActive, toggle: toggleEgg } = useEggMode();
+const workCategories = useWorkCategories();
 const activeSection = ref("");
 const subnavEl = ref<HTMLElement | null>(null);
 
@@ -121,7 +136,6 @@ const aboutSections: Section[] = [
   { label: "Colophon", id: "colophon" },
 ];
 
-const workFilters = ["All", "Branding", "Web", "Type", "Print"];
 
 const logsFilters = ["All", "Design", "Code", "Writing"];
 

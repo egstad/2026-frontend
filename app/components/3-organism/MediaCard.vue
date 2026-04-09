@@ -4,6 +4,7 @@ import {sanityImageUrl} from '~/utils/sanityImage'
 
 const props = defineProps<{
   media: Artifact
+  rowHeight?: number
 }>()
 
 // Check if this is a video
@@ -56,6 +57,13 @@ const aspectRatio = computed(() => {
   }
   return 1 // fallback to square
 })
+
+// Sizes hint for NuxtImg — based on actual rendered card width
+const sizesHint = computed(() => {
+  const h = props.rowHeight ?? 330
+  const w = Math.round(h * aspectRatio.value)
+  return `${w}px`
+})
 </script>
 
 <template>
@@ -79,6 +87,7 @@ const aspectRatio = computed(() => {
       :width="width"
       :height="height"
       :external="true"
+      :sizes="sizesHint"
       loading="lazy"
     />
     <!-- Fallback -->
