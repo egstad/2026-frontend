@@ -208,7 +208,7 @@ const orderedPortraits = computed(() => {
           <Text color="dimmer" size="caption-1">Work</Text>
         </h2>
       </Column>
-      <Column span-tablet="8" span-laptop="10" span-desktop="8">
+      <Column span-tablet="8" span-laptop="9" span-desktop="8">
         <AboutWorkHistory :items="workHistory" />
       </Column>
     </Grid>
@@ -437,7 +437,15 @@ const orderedPortraits = computed(() => {
   @include tablet {
     text-indent: 0;
     position: sticky;
-    top: var(--grid-margin);
+    top: 0;
+    padding-top: var(--grid-margin);
+  }
+}
+
+// Match the label's top offset so content aligns when scrolled to
+@include tablet {
+  :deep(.column + .column) {
+    padding-top: var(--grid-margin);
   }
 }
 

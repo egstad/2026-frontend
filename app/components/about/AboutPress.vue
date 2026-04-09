@@ -34,14 +34,13 @@
     <ul class="interviews">
       <li v-for="item in interviews" :key="item.publisher + item.title">
         <a v-if="item.link" :href="item.link" target="_blank">
-          <Text font="times-seven">
-            <em>"{{ item.title }}" </em></Text
-          >
+          <Text font="times-seven" class="title"> "{{ item.title }}"</Text>
+
+          <Text is="div" size="caption-1" class="publisher" indent>
+            <em>{{ item.publisher }}</em
+            ><template v-if="item.date">, {{ item.date }}.</template>
+          </Text>
         </a>
-        <Text is="div" size="caption-1" indent>
-          <em>{{ item.publisher }}</em
-          ><template v-if="item.date">, {{ item.date }}.</template>
-        </Text>
       </li>
     </ul>
   </div>
@@ -308,13 +307,33 @@ const galleries: PressItem[] = [
 
   &:hover {
     color: var(--foreground-primary);
-    text-decoration-color: var(--link-color, var(--interactive-primary));
+    text-decoration-color: var(--interactive-primary);
   }
 }
 
 .interviews {
-  li {
-    margin-top: var(--unit-small);
+  margin-top: var(--unit-smallest);
+
+  a {
+    display: inline-block;
+    padding: var(--unit-smallest) 0;
+    text-decoration: none;
+
+    &:hover .title {
+      text-decoration-color: var(--interactive-primary);
+      text-decoration: underline;
+      text-underline-offset: 0.175em;
+      text-decoration-thickness: 0.06em;
+    }
+  }
+
+  .title {
+    color: var(--foreground-primary);
+    font-style: italic;
+  }
+
+  .publisher {
+    color: var(--interactive-primary);
   }
 
   .--indent {
