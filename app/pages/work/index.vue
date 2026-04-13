@@ -34,6 +34,7 @@ const { data: media } = await useAsyncData(
       alt,
       dateTaken,
       _createdAt,
+      "captionText": pt::text(caption),
       "imageUrl": image.asset->url,
       "imageMeta": {
         "dimensions": image.asset->metadata.dimensions
@@ -273,7 +274,17 @@ const masonryItems = computed(() =>
         <span class="count">{{ displayMedia.length }}/{{ media.length }}</span>
       </header>
 
-      <ClientOnly v-if="displayMedia.length">
+      <!-- Feed view: always one item wide with caption -->
+      <div v-if="activeView === 'feed' && displayMedia.length" class="feed">
+        <FeedCard
+          v-for="(item, index) in visibleMedia"
+          :key="item._id"
+          :media="item"
+          :priority="index < 3"
+        />
+      </div>
+
+      <ClientOnly v-else-if="displayMedia.length">
         <!-- Mobile/tablet: masonry grid (row-first ordering) -->
         <MasonryGrid
           v-if="masonryColumns > 0"
@@ -289,7 +300,6 @@ const masonryItems = computed(() =>
         <div
           v-else
           class="media-grid"
-          :class="{ 'feed-view': activeView === 'feed' }"
           :style="{ '--row-height': `${rowHeight}px` }"
         >
           <MediaCard
@@ -303,10 +313,7 @@ const masonryItems = computed(() =>
 
         <!-- SSR fallback: inline grid while client boots -->
         <template #fallback>
-          <div
-            class="media-grid"
-            :style="{ '--row-height': `${rowHeight}px` }"
-          >
+          <div class="media-grid" :style="{ '--row-height': `${rowHeight}px` }">
             <MediaCard
               v-for="(item, index) in visibleMedia"
               :key="item._id"
@@ -370,29 +377,16 @@ const masonryItems = computed(() =>
 .media-grid {
   display: flex;
   flex-wrap: wrap;
+}
 
-  &.feed-view {
-    flex-direction: column;
-    align-items: center;
-    gap: var(--unit-small);
-    padding: var(--unit-small);
+.feed {
+  display: flex;
+  flex-direction: column;
+  padding-block: var(--unit-small);
+  gap: var(--unit-big);
 
-    :deep(.media-card) {
-      width: auto;
-      height: auto;
-      max-width: 100vw;
-      max-height: 80vh;
-      margin: 0;
-    }
-
-    :deep(.media-card img),
-    :deep(.media-card video) {
-      width: auto;
-      height: auto;
-      max-width: 100vw;
-      max-height: 80vh;
-      object-fit: contain;
-    }
+  @include tablet {
+    gap: var(--unit-biggest);
   }
 }
 

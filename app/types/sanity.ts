@@ -65,6 +65,7 @@ export interface Artifact {
   video?: MuxVideo
   alt?: string
   caption?: any[]
+  captionText?: string
   categories?: Category[]
   tags?: Tag[]
   clients?: Client[]
