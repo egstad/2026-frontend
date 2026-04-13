@@ -175,14 +175,31 @@ const orderedPortraits = computed(() => {
       <Column span-tablet="9" class="t-paragraph-leading">
         <Text font="times-seven" indent>
           I live in Tulsa, Oklahoma with my wife Emma, our dog
-          <a href="https://en.wikipedia.org/wiki/Tom_Bombadil" target="_blank"
-            >Tom Bombadil</a
-          >, and three cats: Jason Waterfalls, Minnie, and
-          <a
-            href="https://arresteddevelopment.fandom.com/wiki/Gene_Parmesan"
-            target="_blank"
-            >Gene Parmesan</a
-          >. When I’m not working, I’m busy being a professional hobbyist who
+          <Tooltip
+            image="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Sammon_puolustus.jpg/500px-Sammon_puolustus.jpg"
+            html='<a href="https://en.wikipedia.org/wiki/Tom_Bombadil" target="_blank" rel="noopener">Tom Bombadil</a> is a jolly, ancient spirit from J.R.R. Tolkien&rsquo;s Middle-earth &mdash; impossibly old, immune to the Ring, and utterly mysterious. Our dog shares his energy.'
+          >
+            <span class="t-link">Tom Bombadil</span>
+          </Tooltip>, and three cats:
+          <Tooltip
+            html='Named after <a href="https://en.wikipedia.org/wiki/Waterfalls_(TLC_song)" target="_blank" rel="noopener">Waterfalls</a> &mdash; or really a joke about it. He&rsquo;s gray, soft, and moves through life at his own unhurried pace. Not built for chasing anything. We&rsquo;d prefer he didn&rsquo;t go anywhere at all.'
+          >
+            <span class="t-link">Jason Waterfalls</span>
+          </Tooltip>,
+          <Tooltip
+            image="https://upload.wikimedia.org/wikipedia/commons/a/a5/MinaretsClydeDetail.JPG"
+            image-alt="The Minaret Mountains"
+            html='Named after the Minaret Mountains, and she carries it with her. A tabby cut from the same lines, a little weathered, a little sharp. Old in the way that suggests she&rsquo;s seen enough and chosen not to be impressed. Gruff, crusty, and entirely herself. We love her for it.'
+          >
+            <span class="t-link">Minnie</span>
+          </Tooltip>, and
+          <Tooltip
+            image="https://static.wikia.nocookie.net/arresteddevelopment/images/b/b5/Gene_Parmesan_Firefighter.png/revision/latest/scale-to-width-down/1000?cb=20111216225409"
+            image-alt="Gene Parmesan from Arrested Development"
+            html='Named after the <a href="https://arresteddevelopment.fandom.com/wiki/Gene_Parmesan" target="_blank" rel="noopener">Arrested Development character</a> — we found her in the bushes outside a window and Emma screamed exactly like Lucille Bluth. Gene is a mischievous, independent punk who does her own thing. We love her for it.'
+          >
+            <span class="t-link">Gene Parmesan</span>
+          </Tooltip>. When I’m not working, I’m busy being a professional hobbyist who
           likely has been living with an undiagnosed case of ADHD. Odds are
           you’d find me either playing music or taking a photo walk, a hike, a
           round of Magic: The Gathering, slowly reading through four books at a
@@ -270,23 +287,25 @@ const orderedPortraits = computed(() => {
           My first college professor, Britt Stadig, introduced me to the
           structure behind the beauty: color theory, typography, bookbinding.
           She was exacting and generous. She also gave me my first design job,
-          making posters around campus. I only stayed in college for two
-          quarters. During spring break, I was robbed—my computer, my work,
-          childhood photos, back-up hard drives, musical instruments, all gone.
-          It was a stupid, devastating loss. But in its wake, I realized two
-          things: I didn’t want to be in school, and I didn’t need to be. I had
-          already learned the most important thing from these women: how to
-          look. How to learn. How to create from that attention.
+          designing posters for events held at our campus. I only stayed in
+          college for two quarters. During spring break, I was robbed—my
+          computer, my work, childhood photos, back-up hard drives, musical
+          instruments, all gone. It was a stupid, devastating loss. But in its
+          wake, I realized two things: I didn’t want to be in school, and I
+          didn’t need to be. I had already learned the most important thing from
+          these women: how to look. How to learn. How to create from that
+          attention.
         </Text>
         <Text font="times-seven" indent>
           After leaving, I decided to take the so-called “self-taught” route,
-          though I dislike the term. It erases the thinkers, makers, and mentors
-          whose work not only inspired me, but actively shaped how I see. What
-          follows is an incomplete and ever-growing gallery of those people.
-          Some I’ve learned from at a distance, through their work. Others have
-          taught me directly, guided me, challenged me, and, at times, cared for
-          me when I needed it most. They are imperfect, as am I, but their
-          thoughts and actions have made a meaningful difference in my life.
+          though I despise the term. To me, it erases the thinkers, makers,
+          friends, and mentors whose work not only inspired me, but actively
+          shaped how I see. What follows is an incomplete and ever-growing
+          gallery of those people. Many I’ve learned from at a distance, through
+          their work. Others have taught me directly, guided me, challenged me,
+          and, at times, cared for me when I needed it most. They are imperfect,
+          as am I, but their thoughts and actions have made a meaningful
+          difference in my life.
         </Text>
       </Column>
     </Grid>

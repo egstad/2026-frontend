@@ -1,5 +1,6 @@
 <template>
   <div class="site-wrapper">
+    <SiteIntro />
     <Header />
     <SiteHeader />
     <main class="site-content">

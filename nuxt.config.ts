@@ -33,6 +33,14 @@ export default defineNuxtConfig({
       htmlAttrs: {
         lang: "en",
       },
+      script: [
+        {
+          // Synchronously hide the page before first paint if the intro hasn't
+          // played this session. Runs before any stylesheet or framework code.
+          innerHTML: `(function(){try{if(!sessionStorage.getItem('site-intro-played')){document.documentElement.classList.add('intro-pending');}}catch(e){}})();`,
+          tagPosition: "head",
+        },
+      ],
     },
   },
   css: ["~/assets/styles/main.scss"],

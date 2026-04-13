@@ -12,3 +12,11 @@
 @use 'foundations/typography';
 @use 'foundations/effects';
 @use 'foundations/motion';
+
+// Hide nav + content before the intro overlay takes over.
+// The inline <head> script adds this class synchronously before first paint.
+html.intro-pending {
+  .site-content {
+    opacity: 0;
+  }
+}
