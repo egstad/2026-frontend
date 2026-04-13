@@ -2,6 +2,7 @@
 import { sanityClient } from "~/utils/sanity";
 import type { Artifact } from "~/types/sanity";
 import { useArtifactStore } from "~/stores/artifact";
+import { useDeviceStore } from "~/stores/device";
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
 
@@ -17,6 +18,7 @@ const nuxtApp = useNuxtApp();
 const route = useRoute();
 const router = useRouter();
 const artifactStore = useArtifactStore();
+const device = useDeviceStore();
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -179,6 +181,37 @@ onMounted(() => {
 onUnmounted(() => {
   sentinelObserver?.disconnect();
 });
+
+// ─── Masonry ──────────────────────────────────────────────────────────────────
+
+// Number of masonry columns at the current viewport width.
+// 0 = use the standard inline flex layout (laptop+).
+const masonryColumns = computed(() => {
+  const w = device.winWidth;
+  if (!w || w >= 1024) return 0;
+  if (w >= 768) return 3;
+  return 2;
+});
+
+function getAspectRatio(item: Artifact): number {
+  if (item.mediaType === "video" && item.videoMeta?.aspectRatio) {
+    const [wStr, hStr] = item.videoMeta.aspectRatio.split(":");
+    const w = parseFloat(wStr ?? "1");
+    const h = parseFloat(hStr ?? "1");
+    if (w && h) return w / h;
+  }
+  const w = item.imageMeta?.dimensions?.width;
+  const h = item.imageMeta?.dimensions?.height;
+  if (w && h) return w / h;
+  return 1;
+}
+
+const masonryItems = computed(() =>
+  visibleMedia.value.map((item) => ({
+    ...item,
+    aspectRatio: getAspectRatio(item),
+  })),
+);
 </script>
 
 <template>
@@ -240,20 +273,50 @@ onUnmounted(() => {
         <span class="count">{{ displayMedia.length }}/{{ media.length }}</span>
       </header>
 
-      <div
-        class="media-grid"
-        :class="{ 'feed-view': activeView === 'feed' }"
-        :style="{ '--row-height': `${rowHeight}px` }"
-        v-if="displayMedia.length"
-      >
-        <MediaCard
-          v-for="(item, index) in visibleMedia"
-          :key="item._id"
-          :media="item"
-          :row-height="rowHeight"
-          :priority="index < 3"
-        />
-      </div>
+      <ClientOnly v-if="displayMedia.length">
+        <!-- Mobile/tablet: masonry grid (row-first ordering) -->
+        <MasonryGrid
+          v-if="masonryColumns > 0"
+          :items="masonryItems"
+          :columns="masonryColumns"
+        >
+          <template #default="{ item, index }">
+            <MediaCard :media="item" :priority="index < 6" />
+          </template>
+        </MasonryGrid>
+
+        <!-- Laptop+: original inline flex layout -->
+        <div
+          v-else
+          class="media-grid"
+          :class="{ 'feed-view': activeView === 'feed' }"
+          :style="{ '--row-height': `${rowHeight}px` }"
+        >
+          <MediaCard
+            v-for="(item, index) in visibleMedia"
+            :key="item._id"
+            :media="item"
+            :row-height="rowHeight"
+            :priority="index < 3"
+          />
+        </div>
+
+        <!-- SSR fallback: inline grid while client boots -->
+        <template #fallback>
+          <div
+            class="media-grid"
+            :style="{ '--row-height': `${rowHeight}px` }"
+          >
+            <MediaCard
+              v-for="(item, index) in visibleMedia"
+              :key="item._id"
+              :media="item"
+              :row-height="rowHeight"
+              :priority="index < 3"
+            />
+          </div>
+        </template>
+      </ClientOnly>
 
       <!-- Sentinel: triggers next batch when scrolled into view -->
       <div ref="sentinelEl" class="sentinel" aria-hidden="true" />
