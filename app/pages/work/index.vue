@@ -3,8 +3,11 @@ import { sanityClient } from "~/utils/sanity";
 import type { Artifact } from "~/types/sanity";
 import { useArtifactStore } from "~/stores/artifact";
 import { useDeviceStore } from "~/stores/device";
+import { gsap } from "gsap";
+
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
+import { workCategoryFromQuery } from "~/utils/workCategoryQuery";
 
 PageSetup({
   seoMeta: { title: "Artifact" },
@@ -53,8 +56,8 @@ const { data: media } = useAsyncData(
 
 // ─── Category filter (URL query param) ────────────────────────────────────────
 
-const activeCategory = computed(
-  () => route.query.category as string | undefined,
+const activeCategory = computed(() =>
+  workCategoryFromQuery(route.query.category),
 );
 
 function setCategory(slug: string | null) {
@@ -158,8 +161,157 @@ const visibleMedia = computed(() =>
   displayMedia.value.slice(0, visibleCount.value),
 );
 
+/** Drives `<Transition>` so old results leave before new ones mount (`out-in`). */
+const resultsAnimKey = computed(
+  () =>
+    `${activeView.value}|${activeSort.value}|${activeCategory.value ?? ""}|${artifactStore.randomSeed}`,
+);
+
+const RESULT_CARD_SELECTOR =
+  ".masonry__card, .media-grid > .media-card, .feed .feed-card";
+
+function elementsInViewport(elements: HTMLElement[]): HTMLElement[] {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  return elements.filter((el) => {
+    const r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
+  });
+}
+
+function collectResultCards(root: Element): HTMLElement[] {
+  return [...root.querySelectorAll<HTMLElement>(RESULT_CARD_SELECTOR)];
+}
+
+function splitInOffViewport(cards: HTMLElement[]) {
+  const inView = elementsInViewport(cards);
+  const inSet = new Set(inView);
+  const offView = cards.filter((c) => !inSet.has(c));
+  return { inView, offView };
+}
+
+function killResultTweens(root: Element) {
+  const cards = collectResultCards(root);
+  gsap.killTweensOf([root, ...cards]);
+}
+
+function resultsBeforeEnter(el: Element) {
+  killResultTweens(el);
+  const cards = collectResultCards(el);
+  if (cards.length) gsap.set(cards, { opacity: 0 });
+  else gsap.set(el, { opacity: 0 });
+}
+
+/** Initial load: fade in without heavy stepping. */
+function resultsAppear(el: Element, done: () => void) {
+  if (!import.meta.client) {
+    done();
+    return;
+  }
+  killResultTweens(el);
+  requestAnimationFrame(() => {
+    const cards = collectResultCards(el);
+    if (!cards.length) {
+      gsap.fromTo(
+        el,
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.4,
+          ease: "power2.out",
+          onComplete: done,
+        },
+      );
+      return;
+    }
+    const { inView, offView } = splitInOffViewport(cards);
+    if (offView.length) gsap.set(offView, { opacity: 1 });
+    const targets = inView.length ? inView : cards;
+    gsap.to(targets, {
+      opacity: 1,
+      duration: 0.48,
+      stagger: { each: 0.02, from: "start" },
+      ease: "power2.out",
+      onComplete: () => {
+        gsap.set(cards, { clearProps: "opacity" });
+        done();
+      },
+    });
+  });
+}
+
+/** After filter / sort / view / shuffle: stagger in from 0. */
+function resultsEnter(el: Element, done: () => void) {
+  if (!import.meta.client) {
+    done();
+    return;
+  }
+  killResultTweens(el);
+  requestAnimationFrame(() => {
+    const cards = collectResultCards(el);
+    if (!cards.length) {
+      gsap.fromTo(
+        el,
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.32,
+          ease: "power2.out",
+          onComplete: done,
+        },
+      );
+      return;
+    }
+    const { inView, offView } = splitInOffViewport(cards);
+    if (offView.length) gsap.set(offView, { opacity: 1 });
+    const targets = inView.length ? inView : cards;
+    gsap.to(targets, {
+      opacity: 1,
+      duration: 0.34,
+      stagger: { each: 0.03, from: "start" },
+      ease: "power2.out",
+      onComplete: () => {
+        gsap.set(cards, { clearProps: "opacity" });
+        done();
+      },
+    });
+  });
+}
+
+/** Stagger opacity out; `out-in` defers new mount until this finishes. */
+function resultsLeave(el: Element, done: () => void) {
+  if (!import.meta.client) {
+    done();
+    return;
+  }
+  killResultTweens(el);
+  const cards = collectResultCards(el);
+  if (!cards.length) {
+    gsap.to(el, {
+      opacity: 0,
+      duration: 0.22,
+      ease: "power2.in",
+      onComplete: done,
+    });
+    return;
+  }
+  const { inView, offView } = splitInOffViewport(cards);
+  if (offView.length) gsap.set(offView, { opacity: 0 });
+  if (!inView.length) {
+    done();
+    return;
+  }
+  gsap.to(inView, {
+    opacity: 0,
+    duration: 0.2,
+    stagger: { each: 0.03, from: "start" },
+    ease: "power2.out",
+    onComplete: done,
+  });
+}
+
 // Reset to first page when filter or sort changes
-watch([activeCategory, activeSort], () => {
+watch([activeCategory, activeSort, () => artifactStore.randomSeed], () => {
   visibleCount.value = PAGE_SIZE;
 });
 
@@ -281,49 +433,64 @@ const masonryItems = computed(() =>
         <span class="count">{{ displayMedia.length }}/{{ media.length }}</span>
       </header>
 
-      <!-- Feed view: always one item wide with caption -->
-      <div v-if="activeView === 'feed' && displayMedia.length" class="feed">
-        <FeedCard
-          v-for="(item, index) in visibleMedia"
-          :key="item._id"
-          :media="item"
-          :priority="index < 3"
-        />
-      </div>
+      <Transition
+        appear
+        mode="out-in"
+        :css="false"
+        @before-appear="resultsBeforeEnter"
+        @appear="resultsAppear"
+        @before-enter="resultsBeforeEnter"
+        @enter="resultsEnter"
+        @leave="resultsLeave"
+      >
+        <div :key="resultsAnimKey" class="work-results-stage">
+          <!-- Feed view: always one item wide with caption -->
+          <div v-if="activeView === 'feed' && displayMedia.length" class="feed">
+            <FeedCard
+              v-for="(item, index) in visibleMedia"
+              :key="item._id"
+              :media="item"
+              :priority="index < 3"
+            />
+          </div>
 
-      <template v-else-if="displayMedia.length">
-        <MasonryGrid
-          v-if="masonryColumns > 0"
-          :items="masonryItems"
-          :columns="masonryColumns"
-        >
-          <template #default="{ item, index }">
-            <MediaCard :media="item" :priority="index < 6" />
+          <div v-else-if="displayMedia.length" class="media-results">
+            <MasonryGrid
+              v-if="masonryColumns > 0"
+              :items="masonryItems"
+              :columns="masonryColumns"
+            >
+              <template #default="{ item, index }">
+                <MediaCard :media="item" :priority="index < 6" />
+              </template>
+            </MasonryGrid>
+
+            <div
+              v-else
+              class="media-grid"
+              :style="{ '--row-height': `${rowHeight}px` }"
+            >
+              <MediaCard
+                v-for="(item, index) in visibleMedia"
+                :key="item._id"
+                :media="item"
+                :row-height="rowHeight"
+                :priority="index < 3"
+              />
+            </div>
+          </div>
+
+          <template v-else>
+            <p v-if="!displayMedia.length && activeCategory" class="empty">
+              No matches.
+            </p>
+            <p v-else-if="!media?.length" class="empty">No media yet.</p>
           </template>
-        </MasonryGrid>
-
-        <div
-          v-else
-          class="media-grid"
-          :style="{ '--row-height': `${rowHeight}px` }"
-        >
-          <MediaCard
-            v-for="(item, index) in visibleMedia"
-            :key="item._id"
-            :media="item"
-            :row-height="rowHeight"
-            :priority="index < 3"
-          />
         </div>
-      </template>
+      </Transition>
 
       <!-- Sentinel: triggers next batch when scrolled into view -->
       <div ref="sentinelEl" class="sentinel" aria-hidden="true" />
-
-      <p v-if="!displayMedia.length && activeCategory" class="empty">
-        No matches.
-      </p>
-      <p v-else-if="!media?.length" class="empty">No media yet.</p>
     </Column>
   </Grid>
 </template>
@@ -366,6 +533,10 @@ const masonryItems = computed(() =>
   color: var(--foreground-tertiary);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
+}
+
+.media-results {
+  min-height: 1px;
 }
 
 .media-grid {

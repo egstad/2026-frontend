@@ -114,7 +114,9 @@ const sizesHint = computed(() => {
   width: calc(var(--row-height, 220px) * var(--aspect, 1));
   max-width: 100vw;
   flex-shrink: 0;
-  margin: 2px;
+  // margin: 2px;
+  margin-right: var(--unit-tinier);
+  margin-bottom: var(--unit-tinier);
   transition: opacity var(--transition-fast);
 
   &:hover {

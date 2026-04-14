@@ -40,38 +40,49 @@
           </li>
         </ul>
 
-        <!-- Work: category links -->
+        <!-- Work: category links (custom slot: RouterLink exact-active ignores query,
+             so every /work link looked “exact” on /work — only manual classes are reliable) -->
         <ul
           v-else-if="visibleRoute === 'work' || visibleRoute === 'work-index'"
           class="nav-col"
         >
           <li>
-            <NuxtLink
-              to="/work"
-              class="nav-link"
-              :class="{
-                'is-active': !activeCategory,
-                'is-inactive': !!activeCategory,
-              }"
-              active-class=""
-              exact-active-class=""
-            >
-              <Text>All</Text>
+            <NuxtLink to="/work" custom v-slot="{ href, navigate }">
+              <a
+                :href="href"
+                class="nav-link"
+                :class="{
+                  'is-active': workAllSelected,
+                  'is-inactive': !workAllSelected,
+                }"
+                :aria-current="workAllSelected ? 'page' : undefined"
+                @click="navigate"
+              >
+                <Text>All</Text>
+              </a>
             </NuxtLink>
           </li>
           <li v-for="cat in workCategories" :key="cat._id">
             <NuxtLink
               :to="{ path: '/work', query: { category: cat.slug.current } }"
-              class="nav-link"
-              :class="{
-                'is-active': activeCategory === cat.slug.current,
-                'is-inactive':
-                  !!activeCategory && activeCategory !== cat.slug.current,
-              }"
-              active-class=""
-              exact-active-class=""
+              custom
+              v-slot="{ href, navigate }"
             >
-              <Text>{{ cat.name }}</Text>
+              <a
+                :href="href"
+                class="nav-link"
+                :class="{
+                  'is-active': activeCategory === cat.slug.current,
+                  'is-inactive':
+                    !!activeCategory && activeCategory !== cat.slug.current,
+                }"
+                :aria-current="
+                  activeCategory === cat.slug.current ? 'page' : undefined
+                "
+                @click="navigate"
+              >
+                <Text>{{ cat.name }}</Text>
+              </a>
             </NuxtLink>
           </li>
         </ul>
@@ -110,6 +121,7 @@
 import { gsap } from "gsap";
 import { useEggMode } from "~/composables/useEggMode";
 import { useWorkCategories } from "~/composables/useWorkCategories";
+import { workCategoryFromQuery } from "~/utils/workCategoryQuery";
 
 interface Section {
   label: string;
@@ -127,9 +139,12 @@ const routeName = computed(() => route.name?.toString().split("___")[0] ?? "");
 // Lags behind routeName — controls what's rendered while animations play
 const visibleRoute = ref(routeName.value);
 
-const activeCategory = computed(
-  () => route.query.category as string | undefined,
+const activeCategory = computed(() =>
+  workCategoryFromQuery(route.query.category),
 );
+
+/** True when no ?category=… (normalized) — “All” is the current filter. */
+const workAllSelected = computed(() => activeCategory.value === undefined);
 
 // ─── Primary nav ──────────────────────────────────────────────────────────────
 
@@ -317,10 +332,18 @@ onUnmounted(() => {
   &.router-link-active,
   &.is-active {
     color: var(--foreground-primary);
+
+    :deep([class^="t-"]) {
+      color: inherit;
+    }
   }
 
   &.is-inactive {
     color: var(--foreground-quaternary);
+
+    :deep([class^="t-"]) {
+      color: inherit;
+    }
   }
 
   // &:disabled {
