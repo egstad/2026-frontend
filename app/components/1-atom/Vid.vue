@@ -8,6 +8,8 @@ interface Props {
   alt?: string; // Accessibility description
   width?: number | string;
   height?: number | string;
+  /** Width ÷ height (e.g. 16/9). Reserves space like Pic width/height when metadata is not ready yet. */
+  aspectRatio?: number;
   preset?: "default" | "ambient";
   autoplay?: boolean | null;
   loop?: boolean | null;
@@ -15,6 +17,8 @@ interface Props {
   controls?: boolean | null;
   playsinline?: boolean;
   loading?: "lazy" | "eager";
+  /** IntersectionObserver `rootMargin` for early fetch (lazy only). Only `px` or `%` (no `vh`/`vw` — not supported by the API). */
+  prefetchRootMargin?: string;
   defaultSubtitleLang?: string; // e.g. "en" — subtitles off by default
 }
 
@@ -26,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   controls: null,
   playsinline: true,
   loading: "lazy",
+  prefetchRootMargin: "25% 0px 25% 0px",
 });
 
 const emit = defineEmits<{
@@ -41,7 +46,10 @@ const emit = defineEmits<{
 const wrapperRef = ref<HTMLElement | null>(null);
 const videoRef = ref<HTMLVideoElement | null>(null);
 const hlsInstance = ref<Hls | null>(null);
-const observer = ref<IntersectionObserver | null>(null);
+/** Tight intersection: play / pause vs real visibility. */
+const visibilityObserver = ref<IntersectionObserver | null>(null);
+/** Expanded rootMargin: start HLS / src early (lazy only), then disconnect. */
+const prefetchObserver = ref<IntersectionObserver | null>(null);
 
 // -------------------------
 // State
@@ -110,16 +118,28 @@ const posterUrl = computed(() => {
 });
 
 // -------------------------
-// Dimensions
+// Dimensions (wrapper aspect box — mirrors Pic using width/height for layout)
 // -------------------------
-const computedWidth = computed(() => {
-  if (props.width && props.width !== "auto") return props.width;
-  return naturalWidth.value || undefined;
-});
+function parseDim(v: number | string | undefined): number | null {
+  if (v === undefined || v === "" || v === "auto") return null;
+  const n = typeof v === "number" ? v : parseFloat(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 
-const computedHeight = computed(() => {
-  if (props.height && props.height !== "auto") return props.height;
-  return naturalHeight.value || undefined;
+/** CSS `aspect-ratio` value for the wrapper until / unless intrinsic video size refines it. */
+const wrapperAspectStyle = computed(() => {
+  const w = parseDim(props.width);
+  const h = parseDim(props.height);
+  if (w && h) return { aspectRatio: `${w} / ${h}` };
+  if (props.aspectRatio != null && props.aspectRatio > 0) {
+    return { aspectRatio: String(props.aspectRatio) };
+  }
+  if (naturalWidth.value && naturalHeight.value) {
+    return {
+      aspectRatio: `${naturalWidth.value} / ${naturalHeight.value}`,
+    };
+  }
+  return { aspectRatio: "16 / 9" };
 });
 
 // -------------------------
@@ -295,18 +315,31 @@ const initVideo = () => {
 };
 
 // -------------------------
-// Intersection observer
+// Intersection observers (prefetch near viewport; play/pause in view)
 // -------------------------
-const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+const startLoadIfNeeded = () => {
+  if (!shouldLoad.value) {
+    shouldLoad.value = true;
+    initVideo();
+  }
+};
+
+const handlePrefetchIntersect = (entries: IntersectionObserverEntry[]) => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    startLoadIfNeeded();
+    prefetchObserver.value?.disconnect();
+    prefetchObserver.value = null;
+    break;
+  }
+};
+
+const handleVisibilityIntersect = (entries: IntersectionObserverEntry[]) => {
   for (const entry of entries) {
     if (entry.isIntersecting) {
-      // Lazy-load: start loading on first viewport entry
-      if (!shouldLoad.value) {
-        shouldLoad.value = true;
-        initVideo();
-      }
+      // Backstop: visible before prefetch fired (fast scroll, tiny margin, etc.)
+      startLoadIfNeeded();
 
-      // Resume playback
       if (
         videoRef.value &&
         (wasPlayingBeforeLeave.value || effectiveAutoplay.value)
@@ -315,7 +348,6 @@ const handleIntersection = (entries: IntersectionObserverEntry[]) => {
       }
       wasPlayingBeforeLeave.value = false;
     } else {
-      // Pause when leaving viewport
       if (videoRef.value && !videoRef.value.paused) {
         wasPlayingBeforeLeave.value = true;
         videoRef.value.pause();
@@ -335,19 +367,29 @@ onMounted(() => {
     shouldLoad.value = true;
     isLoading.value = true;
     initVideo();
+  } else {
+    prefetchObserver.value = new IntersectionObserver(handlePrefetchIntersect, {
+      root: null,
+      rootMargin: props.prefetchRootMargin,
+      threshold: 0,
+    });
+    prefetchObserver.value.observe(target);
   }
 
-  observer.value = new IntersectionObserver(handleIntersection, {
-    threshold: 0.25,
-  });
-  observer.value.observe(target);
+  visibilityObserver.value = new IntersectionObserver(
+    handleVisibilityIntersect,
+    { threshold: 0.25 },
+  );
+  visibilityObserver.value.observe(target);
 });
 
 onUnmounted(() => {
   hlsInstance.value?.destroy();
   hlsInstance.value = null;
-  observer.value?.disconnect();
-  observer.value = null;
+  prefetchObserver.value?.disconnect();
+  prefetchObserver.value = null;
+  visibilityObserver.value?.disconnect();
+  visibilityObserver.value = null;
   if (hideTimeout) clearTimeout(hideTimeout);
 });
 </script>
@@ -356,13 +398,12 @@ onUnmounted(() => {
   <div
     ref="wrapperRef"
     class="vid-wrapper"
+    :style="wrapperAspectStyle"
     @mouseenter="showControls"
     @mouseleave="scheduleHideControls"
   >
     <video
       ref="videoRef"
-      :width="computedWidth"
-      :height="computedHeight"
       :autoplay="effectiveAutoplay && shouldLoad"
       :loop="effectiveLoop"
       :muted="effectiveMuted || effectiveAutoplay"
@@ -465,16 +506,21 @@ onUnmounted(() => {
   position: relative;
   display: block;
   width: 100%;
-  height: auto;
+  max-height: 100%;
+  min-height: 0;
+  /* When the parent gives a definite height (e.g. media cards), fill it; aspect-ratio is then ignored. */
+  height: 100%;
   overflow: hidden;
   border-radius: var(--radii-tiny);
   background: var(--background-secondary);
 }
 
 .vid {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   object-fit: cover;
   transition: opacity var(--transition);
 

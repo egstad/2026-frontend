@@ -14,7 +14,6 @@ definePageMeta({
   pageTransition: pageTransitionDefault(),
 });
 
-const nuxtApp = useNuxtApp();
 const route = useRoute();
 const router = useRouter();
 const artifactStore = useArtifactStore();
@@ -22,7 +21,10 @@ const device = useDeviceStore();
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const { data: media } = await useAsyncData(
+// No top-level await: `<script setup>` + await makes this an async component; Vue
+// can defer inner hydration (`__asyncHydrate`) so the first client pass still has
+// `media === null` while the DOM from SSR already has the grid → mismatches.
+const { data: media } = useAsyncData(
   "artifact",
   () =>
     sanityClient.fetch<Artifact[]>(`
@@ -46,10 +48,7 @@ const { data: media } = await useAsyncData(
       "categories": categories[]->{ _id, name, slug }
     }
   `),
-  {
-    getCachedData: (key) =>
-      nuxtApp.payload.data[key] || nuxtApp.static.data[key],
-  },
+  { lazy: false },
 );
 
 // ─── Category filter (URL query param) ────────────────────────────────────────
@@ -164,7 +163,14 @@ watch([activeCategory, activeSort], () => {
   visibleCount.value = PAGE_SIZE;
 });
 
+// Masonry must not switch on until after mount: the dimensions plugin sets
+// winWidth before hydration, so the client would otherwise pick MasonryGrid
+// while SSR always had winWidth 0 → flex grid (hydration mismatch).
+const masonryLayoutReady = ref(false);
+
 onMounted(() => {
+  masonryLayoutReady.value = true;
+
   sentinelObserver = new IntersectionObserver(
     (entries) => {
       if (entries[0]?.isIntersecting) {
@@ -188,6 +194,7 @@ onUnmounted(() => {
 // Number of masonry columns at the current viewport width.
 // 0 = use the standard inline flex layout (laptop+).
 const masonryColumns = computed(() => {
+  if (!masonryLayoutReady.value) return 0;
   const w = device.winWidth;
   if (!w || w >= 1024) return 0;
   if (w >= 768) return 3;
@@ -284,8 +291,7 @@ const masonryItems = computed(() =>
         />
       </div>
 
-      <ClientOnly v-else-if="displayMedia.length">
-        <!-- Mobile/tablet: masonry grid (row-first ordering) -->
+      <template v-else-if="displayMedia.length">
         <MasonryGrid
           v-if="masonryColumns > 0"
           :items="masonryItems"
@@ -296,7 +302,6 @@ const masonryItems = computed(() =>
           </template>
         </MasonryGrid>
 
-        <!-- Laptop+: original inline flex layout -->
         <div
           v-else
           class="media-grid"
@@ -310,20 +315,7 @@ const masonryItems = computed(() =>
             :priority="index < 3"
           />
         </div>
-
-        <!-- SSR fallback: inline grid while client boots -->
-        <template #fallback>
-          <div class="media-grid" :style="{ '--row-height': `${rowHeight}px` }">
-            <MediaCard
-              v-for="(item, index) in visibleMedia"
-              :key="item._id"
-              :media="item"
-              :row-height="rowHeight"
-              :priority="index < 3"
-            />
-          </div>
-        </template>
-      </ClientOnly>
+      </template>
 
       <!-- Sentinel: triggers next batch when scrolled into view -->
       <div ref="sentinelEl" class="sentinel" aria-hidden="true" />
@@ -341,6 +333,8 @@ const masonryItems = computed(() =>
 
 .media-page {
   min-height: 100vh;
+  padding-left: var(--unit-tinier);
+  padding-right: var(--unit-tinier);
 }
 
 .media-header {

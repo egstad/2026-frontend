@@ -173,6 +173,7 @@ preset='ambient'    // Background video
   alt='Video description'        /* Alt text for accessibility */
   width='400'                    /* Video width */
   height='300'                   /* Video height */
+  :aspect-ratio='16/9'          /* Reserve space (width÷height); default 16/9 */
   preset='default'               /* default | ambient */
   autoplay='null'                /* Override: auto-start playback */
   loop='null'                    /* Override: loop playback */

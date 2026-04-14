@@ -14,56 +14,66 @@
 <script setup lang="ts">
 // CSS grid masonry: grid-auto-rows + per-item span calculated from aspect ratio.
 // Items flow left-to-right (row order) — no reordering as new items load.
+// Row track + gap both use var(--unit-tinier); pixel value is read for span math.
 
-const ROW_PX = 2  // matches grid-auto-rows
-const GAP_PX = 2  // matches gap
-
-interface MasonryItem {
-  _id: string
-  aspectRatio: number
+function readUnitTinierPx(el: HTMLElement): number {
+  const raw = getComputedStyle(el).getPropertyValue("--unit-tinier").trim();
+  const n = parseFloat(raw);
+  return Number.isFinite(n) && n > 0 ? n : 8;
 }
 
-const props = defineProps<{
-  items: MasonryItem[]
-  columns: number
-}>()
+import type { Artifact } from "~/types/sanity";
 
-const containerEl = ref<HTMLElement | null>(null)
-const containerWidth = ref(0)
+export type MasonryItem = Artifact & { aspectRatio: number };
+
+const props = defineProps<{
+  items: MasonryItem[];
+  columns: number;
+}>();
+
+const containerEl = ref<HTMLElement | null>(null);
+const containerWidth = ref(0);
+/** Resolved px for var(--unit-tinier) on the container (matches grid-auto-rows + gap). */
+const gridUnitPx = ref(8);
 
 const colWidth = computed(() => {
-  const w = containerWidth.value
-  if (!w) return 200
-  return (w - (props.columns - 1) * GAP_PX) / props.columns
-})
+  const w = containerWidth.value;
+  const gap = gridUnitPx.value;
+  if (!w) return 200;
+  return (w - (props.columns - 1) * gap) / props.columns;
+});
 
 // span = ceil((itemHeight + GAP) / (ROW + GAP))
 // This ensures the item fits in its grid area with correct row gaps.
-const spans = computed(() =>
-  props.items.map((item) => {
-    const h = colWidth.value / (item.aspectRatio || 1)
-    return Math.ceil((h + GAP_PX) / (ROW_PX + GAP_PX))
-  }),
-)
+const spans = computed(() => {
+  const u = gridUnitPx.value;
+  return props.items.map((item) => {
+    const h = colWidth.value / (item.aspectRatio || 1);
+    return Math.ceil((h + u) / (2 * u));
+  });
+});
 
-const cssVars = computed(() => ({ "--masonry-cols": props.columns }))
+const cssVars = computed(() => ({ "--masonry-cols": props.columns }));
 
 onMounted(() => {
-  if (!containerEl.value) return
+  const el = containerEl.value;
+  if (!el) return;
+  gridUnitPx.value = readUnitTinierPx(el);
   const ro = new ResizeObserver((entries) => {
-    containerWidth.value = entries[0]?.contentRect.width ?? 0
-  })
-  ro.observe(containerEl.value)
-  onUnmounted(() => ro.disconnect())
-})
+    containerWidth.value = entries[0]?.contentRect.width ?? 0;
+    if (containerEl.value) gridUnitPx.value = readUnitTinierPx(containerEl.value);
+  });
+  ro.observe(el);
+  onUnmounted(() => ro.disconnect());
+});
 </script>
 
 <style lang="scss" scoped>
 .masonry {
   display: grid;
   grid-template-columns: repeat(var(--masonry-cols, 2), 1fr);
-  grid-auto-rows: 2px;
-  gap: 2px;
+  grid-auto-rows: var(--unit-tinier);
+  gap: var(--unit-tinier);
 }
 
 .masonry__item {

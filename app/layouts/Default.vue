@@ -26,6 +26,6 @@ watch(
   () => route.path,
   () => {
     app.setRouteIsTransitioning(true);
-  }
+  },
 );
 </script>

@@ -179,27 +179,27 @@ const orderedPortraits = computed(() => {
             image="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Sammon_puolustus.jpg/500px-Sammon_puolustus.jpg"
             html='<a href="https://en.wikipedia.org/wiki/Tom_Bombadil" target="_blank" rel="noopener">Tom Bombadil</a> is a jolly, ancient spirit from J.R.R. Tolkien&rsquo;s Middle-earth &mdash; impossibly old, immune to the Ring, and utterly mysterious. Our dog shares his energy.'
           >
-            <span class="t-link">Tom Bombadil</span>
-          </Tooltip>, and three cats:
+            <span class="t-link">Tom Bombadil</span> </Tooltip
+          >, and three cats:
           <Tooltip
             html='Named after <a href="https://en.wikipedia.org/wiki/Waterfalls_(TLC_song)" target="_blank" rel="noopener">Waterfalls</a> &mdash; or really a joke about it. He&rsquo;s gray, soft, and moves through life at his own unhurried pace. Not built for chasing anything. We&rsquo;d prefer he didn&rsquo;t go anywhere at all.'
           >
-            <span class="t-link">Jason Waterfalls</span>
-          </Tooltip>,
+            <span class="t-link">Jason Waterfalls</span> </Tooltip
+          >,
           <Tooltip
             image="https://upload.wikimedia.org/wikipedia/commons/a/a5/MinaretsClydeDetail.JPG"
             image-alt="The Minaret Mountains"
-            html='Named after the Minaret Mountains, and she carries it with her. A tabby cut from the same lines, a little weathered, a little sharp. Old in the way that suggests she&rsquo;s seen enough and chosen not to be impressed. Gruff, crusty, and entirely herself. We love her for it.'
+            html="Named after the Minaret Mountains, and she carries it with her. A tabby cut from the same lines, a little weathered, a little sharp. Old in the way that suggests she&rsquo;s seen enough and chosen not to be impressed. Gruff, crusty, and entirely herself. We love her for it."
           >
-            <span class="t-link">Minnie</span>
-          </Tooltip>, and
+            <span class="t-link">Minnie</span> </Tooltip
+          >, and
           <Tooltip
             image="https://static.wikia.nocookie.net/arresteddevelopment/images/b/b5/Gene_Parmesan_Firefighter.png/revision/latest/scale-to-width-down/1000?cb=20111216225409"
             image-alt="Gene Parmesan from Arrested Development"
             html='Named after the <a href="https://arresteddevelopment.fandom.com/wiki/Gene_Parmesan" target="_blank" rel="noopener">Arrested Development character</a> — we found her in the bushes outside a window and Emma screamed exactly like Lucille Bluth. Gene is a mischievous, independent punk who does her own thing. We love her for it.'
           >
-            <span class="t-link">Gene Parmesan</span>
-          </Tooltip>. When I’m not working, I’m busy being a professional hobbyist who
+            <span class="t-link">Gene Parmesan</span> </Tooltip
+          >. When I’m not working, I’m busy being a professional hobbyist who
           likely has been living with an undiagnosed case of ADHD. Odds are
           you’d find me either playing music or taking a photo walk, a hike, a
           round of Magic: The Gathering, slowly reading through four books at a
@@ -404,7 +404,7 @@ const orderedPortraits = computed(() => {
         <Text font="times-seven" indent>
           This site is set in <Text is="span" class="metaphor">Metaphor</Text>,
           <Text is="span" font="times-seven">Times Seven</Text>, and
-          <Text is="span" font="times-ten">Times Ten</Text>.Metaphor is a
+          <Text is="span" font="times-ten">Times Ten</Text>. Metaphor is a
           sans-serif I drew from scratch, shaped by the grotesques I return to
           most, designed to hold up at both small and large sizes. Times seven
           is a custom modification of Times, with adjusted characters and

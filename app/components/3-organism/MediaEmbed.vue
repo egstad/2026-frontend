@@ -20,13 +20,27 @@ const imageProps = computed(() => {
   }
 })
 
+function parseMuxAspectRatio(ratio?: string): number | null {
+  if (!ratio) return null
+  const parts = ratio.split(':')
+  if (parts.length === 2 && parts[0] && parts[1]) {
+    const w = parseFloat(parts[0])
+    const h = parseFloat(parts[1])
+    if (w && h) return w / h
+  }
+  return null
+}
+
 // Video props
 const videoProps = computed(() => {
   if (!props.media.muxPlaybackId) return null
 
+  const aspectRatio = parseMuxAspectRatio(props.media.videoMeta?.aspectRatio)
+  const preset = props.media.autoplay ? 'ambient' : 'default'
   return {
     playbackId: props.media.muxPlaybackId,
-    preset: props.media.autoplay ? 'ambient' : 'default',
+    preset: preset as 'ambient' | 'default',
+    ...(aspectRatio ? { aspectRatio } : {}),
   }
 })
 
@@ -71,13 +85,16 @@ const videoProps = computed(() => {
   object-position: center;
 }
 
-/* Videos: size naturally to avoid controls extending */
-.media-embed.large :deep(video) {
-  display: inline-block;
-  width: auto;
-  height: auto;
-  max-width: 100%;
+/* Videos: letterbox inside reserved aspect box */
+.media-embed.large :deep(.vid-wrapper) {
   max-height: 80vh;
+  height: auto;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.media-embed.large :deep(.vid) {
+  object-fit: contain;
 }
 
 .fallback {

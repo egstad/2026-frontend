@@ -3,7 +3,6 @@
     ref="triggerEl"
     class="tooltip-trigger"
     @mouseenter="onMouseEnter"
-    @mouseleave="onMouseLeave"
     @click.stop="onTriggerClick"
   >
     <slot />
@@ -16,8 +15,6 @@
           class="tooltip"
           :style="tooltipStyle"
           role="tooltip"
-          @mouseenter="cancelClose"
-          @mouseleave="scheduleClose"
           @click.stop
         >
           <figure v-if="image" class="tooltip__image">
@@ -49,6 +46,8 @@
 <script setup lang="ts">
 import { gsap } from "gsap";
 
+import { tooltipRelease, tooltipTakeOver } from "~/utils/tooltipSingleton";
+
 interface Props {
   html?: string;
   image?: string;
@@ -63,7 +62,93 @@ const isOpen = ref(false);
 const isMounted = ref(false);
 const isTouch = ref(false);
 const tooltipStyle = ref<Record<string, string>>({});
-let closeTimer: ReturnType<typeof setTimeout> | null = null;
+let lastWindowScrollY = 0;
+/** Padding (px) so edge hits still count as “inside” the combined hitbox. */
+const HIT_SLOP = 2;
+
+let lastPointerClient = { x: 0, y: 0 };
+let hasPointerSample = false;
+let layoutObserver: ResizeObserver | null = null;
+let layoutRaf = 0;
+/** Hover: horizontal anchor = pointer X (wrapped inline links have a wide union rect). Touch: null → use trigger center. */
+let hoverAnchorX: number | null = null;
+
+function pointInRect(x: number, y: number, r: DOMRect) {
+  return (
+    x >= r.left - HIT_SLOP &&
+    x <= r.right + HIT_SLOP &&
+    y >= r.top - HIT_SLOP &&
+    y <= r.bottom + HIT_SLOP
+  );
+}
+
+/** Axis-aligned gap between trigger and tooltip so moving across empty space still counts as “inside”. */
+function bridgeBetween(tri: DOMRect, tip: DOMRect): DOMRect | null {
+  // Tooltip below trigger
+  if (tip.top >= tri.bottom - HIT_SLOP) {
+    const left = Math.min(tri.left, tip.left) - HIT_SLOP;
+    const right = Math.max(tri.right, tip.right) + HIT_SLOP;
+    const top = tri.bottom - HIT_SLOP;
+    const bottom = tip.top + HIT_SLOP;
+    if (bottom > top && right > left) {
+      return new DOMRect(left, top, right - left, bottom - top);
+    }
+  }
+  // Tooltip above trigger
+  if (tip.bottom <= tri.top + HIT_SLOP) {
+    const left = Math.min(tri.left, tip.left) - HIT_SLOP;
+    const right = Math.max(tri.right, tip.right) + HIT_SLOP;
+    const top = tip.bottom - HIT_SLOP;
+    const bottom = tri.top + HIT_SLOP;
+    if (bottom > top && right > left) {
+      return new DOMRect(left, top, right - left, bottom - top);
+    }
+  }
+  return null;
+}
+
+function pointerInCombinedHitbox(clientX: number, clientY: number): boolean {
+  const tri = triggerEl.value?.getBoundingClientRect();
+  const tip = tooltipEl.value?.getBoundingClientRect();
+  if (!tri) return false;
+  const x = clientX;
+  const y = clientY;
+  if (pointInRect(x, y, tri)) return true;
+  if (tip && pointInRect(x, y, tip)) return true;
+  if (tip) {
+    const bridge = bridgeBetween(tri, tip);
+    if (bridge && pointInRect(x, y, bridge)) return true;
+  }
+  return false;
+}
+
+function onPointerMoveHitTest(e: MouseEvent) {
+  if (!isOpen.value || isTouch.value) return;
+  lastPointerClient = { x: e.clientX, y: e.clientY };
+  hasPointerSample = true;
+  if (!pointerInCombinedHitbox(e.clientX, e.clientY)) close();
+}
+
+/** Layout can move the trigger (e.g. carousel auto-height) without a pointermove. */
+function recheckPointerOutside() {
+  if (!isOpen.value || isTouch.value) return;
+  let x = lastPointerClient.x;
+  let y = lastPointerClient.y;
+  if (!hasPointerSample && triggerEl.value) {
+    const r = triggerEl.value.getBoundingClientRect();
+    x = r.left + r.width / 2;
+    y = r.top + r.height / 2;
+  }
+  if (!pointerInCombinedHitbox(x, y)) close();
+}
+
+function scheduleLayoutRecheck() {
+  if (layoutRaf) return;
+  layoutRaf = requestAnimationFrame(() => {
+    layoutRaf = 0;
+    recheckPointerOutside();
+  });
+}
 
 // ─── Positioning ──────────────────────────────────────────────────────────────
 
@@ -78,9 +163,19 @@ async function updatePosition() {
   const GAP = 10;
   const EDGE = 12;
 
-  // Default: below trigger, centered over it
+  const rawAnchorX =
+    hoverAnchorX != null
+      ? hoverAnchorX
+      : trigger.left + trigger.width / 2;
+  // Keep anchor on the link’s horizontal span (pointer can sit slightly outside subpixel edges).
+  const anchorX = Math.max(
+    trigger.left,
+    Math.min(rawAnchorX, trigger.right),
+  );
+
+  // Default: below trigger; horizontally under pointer (hover) or trigger center (touch).
   let top = trigger.bottom + GAP;
-  let left = trigger.left + trigger.width / 2 - tooltip.width / 2;
+  let left = anchorX - tooltip.width / 2;
 
   // Flip above if clipped by bottom of viewport
   if (top + tooltip.height + EDGE > vh) {
@@ -94,40 +189,50 @@ async function updatePosition() {
     position: "fixed",
     top: `${Math.round(top)}px`,
     left: `${Math.round(left)}px`,
+    visibility: "visible",
+    pointerEvents: "auto",
   };
 }
 
 // ─── Open / close ─────────────────────────────────────────────────────────────
 
 async function open() {
-  if (closeTimer) clearTimeout(closeTimer);
+  tooltipTakeOver(close);
+  if (!isOpen.value) {
+    lastWindowScrollY = window.scrollY;
+    document.addEventListener("pointermove", onPointerMoveHitTest, {
+      passive: true,
+    });
+    window.addEventListener("resize", scheduleLayoutRecheck, { passive: true });
+    layoutObserver = new ResizeObserver(() => scheduleLayoutRecheck());
+    layoutObserver.observe(document.documentElement);
+  }
   isOpen.value = true;
   await updatePosition();
+  scheduleLayoutRecheck();
 }
 
 function close() {
-  if (closeTimer) clearTimeout(closeTimer);
+  tooltipRelease(close);
+  document.removeEventListener("pointermove", onPointerMoveHitTest);
+  window.removeEventListener("resize", scheduleLayoutRecheck);
+  layoutObserver?.disconnect();
+  layoutObserver = null;
+  if (layoutRaf) cancelAnimationFrame(layoutRaf);
+  layoutRaf = 0;
+  tooltipStyle.value = {};
+  hoverAnchorX = null;
   isOpen.value = false;
-}
-
-function scheduleClose() {
-  closeTimer = setTimeout(close, 150);
-}
-
-function cancelClose() {
-  if (closeTimer) clearTimeout(closeTimer);
 }
 
 // ─── Hover (pointer devices) ──────────────────────────────────────────────────
 
-function onMouseEnter() {
+function onMouseEnter(e: MouseEvent) {
   if (isTouch.value) return;
+  hoverAnchorX = e.clientX;
+  lastPointerClient = { x: e.clientX, y: e.clientY };
+  hasPointerSample = true;
   open();
-}
-
-function onMouseLeave() {
-  if (isTouch.value) return;
-  scheduleClose();
 }
 
 // ─── Tap (touch devices) ──────────────────────────────────────────────────────
@@ -135,15 +240,25 @@ function onMouseLeave() {
 function onTriggerClick(e: MouseEvent) {
   if (!isTouch.value) return;
   e.preventDefault();
+  hoverAnchorX = null;
   isOpen.value ? close() : open();
 }
 
-function onOutsideClick() {
-  if (isOpen.value) close();
+function onOutsideClick(e: MouseEvent) {
+  if (!isOpen.value) return;
+  const t = e.target as Node | null;
+  if (t && triggerEl.value?.contains(t)) return;
+  if (t && tooltipEl.value?.contains(t)) return;
+  close();
 }
 
 function onScroll() {
-  if (isOpen.value) close();
+  if (!isOpen.value) return;
+  const y = window.scrollY;
+  // ScrollTrigger.refresh() and similar can emit scroll without the page actually moving.
+  if (y === lastWindowScrollY) return;
+  lastWindowScrollY = y;
+  close();
 }
 
 // ─── GSAP transitions ─────────────────────────────────────────────────────────
@@ -151,7 +266,7 @@ function onScroll() {
 function onEnter(el: Element, done: () => void) {
   gsap.fromTo(
     el,
-    { opacity: 0, y: 6 },
+    { opacity: 0, y: 4 },
     { opacity: 1, y: 0, duration: 0.2, ease: "power2.out", onComplete: done },
   );
 }
@@ -161,7 +276,7 @@ function onLeave(el: Element, done: () => void) {
     opacity: 0,
     y: 4,
     duration: 0.15,
-    ease: "power2.in",
+    ease: "power2.out",
     onComplete: done,
   });
 }
@@ -179,8 +294,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener("click", onOutsideClick);
+  document.removeEventListener("pointermove", onPointerMoveHitTest);
+  window.removeEventListener("resize", scheduleLayoutRecheck);
   window.removeEventListener("scroll", onScroll);
-  if (closeTimer) clearTimeout(closeTimer);
+  layoutObserver?.disconnect();
+  if (layoutRaf) cancelAnimationFrame(layoutRaf);
+  close();
 });
 </script>
 
@@ -218,6 +337,14 @@ onUnmounted(() => {
 // ─── Popup ────────────────────────────────────────────────────────────────────
 
 .tooltip {
+  /* Out of flow before JS assigns top/left — avoids a tall in-flow node at the
+     end of <body> stretching scroll height and jumping the page on hover. */
+  position: fixed;
+  left: 0;
+  top: 0;
+  margin: 0;
+  visibility: hidden;
+  pointer-events: none;
   z-index: 9000;
   // width: min(280px, calc(100vw - 24px))
   max-width: calc(var(--unit-huge) * 2);

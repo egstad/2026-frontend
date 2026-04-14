@@ -1,7 +1,12 @@
 <template>
   <article class="feed-card" :style="{ '--aspect': aspectRatio }">
     <NuxtLink :to="`/work/${media.slug.current}`" class="feed-card__media">
-      <Vid v-if="isVideo" :playbackId="media.muxPlaybackId" preset="ambient" />
+      <Vid
+        v-if="isVideo"
+        :playbackId="media.muxPlaybackId"
+        preset="ambient"
+        :aspect-ratio="vidAspectProp"
+      />
       <Pic
         v-else-if="media.imageUrl"
         :src="media.imageUrl"
@@ -68,6 +73,16 @@ const aspectRatio = computed(() => {
   if (width.value && height.value) return width.value / height.value;
   return 1;
 });
+
+/** Mux aspect for Vid only when known (card `--aspect` still uses image ratio / 1). */
+const vidAspectProp = computed((): number | undefined => {
+  if (!isVideo.value || !props.media.videoMeta?.aspectRatio) return undefined;
+  const [wStr, hStr] = props.media.videoMeta.aspectRatio.split(":");
+  const w = parseFloat(wStr ?? "");
+  const h = parseFloat(hStr ?? "");
+  if (w && h) return w / h;
+  return undefined;
+});
 </script>
 
 <style lang="scss" scoped>
@@ -79,22 +94,26 @@ $feed-base: 60%;
 
 .feed-card {
   width: 100%;
-  margin-inline: auto;
 
-  @include mobile {
+  // @include mobile {
+  //   width: min(100%, calc(var(--aspect, 1) * 80%));
+  // }
+
+  @include phablet {
+    margin-inline: auto;
     width: min(100%, calc(var(--aspect, 1) * 80%));
   }
 
-  @include phablet {
-    width: min(100%, calc(var(--aspect, 1) * 75%));
-  }
-
   @include tablet {
-    width: min(100%, calc(var(--aspect, 1) * 55%));
+    width: min(100%, calc(var(--aspect, 1) * 65%));
   }
 
   @include laptop {
-    width: min(100%, calc(var(--aspect, 1) * 35%));
+    width: min(100%, calc(var(--aspect, 1) * 45%));
+  }
+
+  @include desktop {
+    width: min(100%, calc(var(--aspect, 1) * 40%));
   }
 }
 
@@ -109,13 +128,12 @@ $feed-base: 60%;
   }
 
   :deep(.pic),
-  :deep(.vid) {
+  :deep(.vid-wrapper) {
     display: block;
     width: 100%;
   }
 
-  :deep(img),
-  :deep(video) {
+  :deep(img) {
     display: block;
     width: 100%;
     height: auto;

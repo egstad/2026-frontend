@@ -1,70 +1,78 @@
 <script setup lang="ts">
-import type {Artifact} from '~/types/sanity'
-import {sanityImageUrl} from '~/utils/sanityImage'
+import type { Artifact } from "~/types/sanity";
+import { sanityImageUrl } from "~/utils/sanityImage";
 
 const props = defineProps<{
-  media: Artifact
-  rowHeight?: number
-  priority?: boolean
-}>()
+  media: Artifact;
+  rowHeight?: number;
+  priority?: boolean;
+}>();
 
 // Check if this is a video
-const isVideo = computed(() => props.media.mediaType === 'video' && props.media.muxPlaybackId)
+const isVideo = computed(
+  () => props.media.mediaType === "video" && props.media.muxPlaybackId,
+);
 
 // Preload on hover for instant navigation
-let preloaded = false
+let preloaded = false;
 function onHover() {
-  if (preloaded || isVideo.value) return
-  preloaded = true
+  if (preloaded || isVideo.value) return;
+  preloaded = true;
 
   // Preload larger image (pick ~1600w for detail view)
   if (props.media.imageUrl) {
-    const img = new Image()
-    img.src = sanityImageUrl(props.media.imageUrl, {width: 1600})
+    const img = new Image();
+    img.src = sanityImageUrl(props.media.imageUrl, { width: 1600 });
   }
 }
 
 // Pass the base Sanity URL — Pic detects Sanity CDN URLs and uses
 // NuxtImg's Sanity provider for automatic srcset, format negotiation,
 // and DPR-aware source selection.
-const thumbnailSrc = computed(() => props.media.imageUrl || null)
+const thumbnailSrc = computed(() => props.media.imageUrl || null);
 
 // Dimensions from metadata
-const width = computed(() => props.media.imageMeta?.dimensions?.width)
-const height = computed(() => props.media.imageMeta?.dimensions?.height)
+const width = computed(() => props.media.imageMeta?.dimensions?.width);
+const height = computed(() => props.media.imageMeta?.dimensions?.height);
 
 // Parse Mux aspect ratio string (e.g., "16:9") to number
 function parseMuxAspectRatio(ratio?: string): number | null {
-  if (!ratio) return null
-  const parts = ratio.split(':')
+  if (!ratio) return null;
+  const parts = ratio.split(":");
   if (parts.length === 2 && parts[0] && parts[1]) {
-    const w = parseFloat(parts[0])
-    const h = parseFloat(parts[1])
-    if (w && h) return w / h
+    const w = parseFloat(parts[0]);
+    const h = parseFloat(parts[1]);
+    if (w && h) return w / h;
   }
-  return null
+  return null;
 }
 
 // Aspect ratio for variable width calculation
 const aspectRatio = computed(() => {
   // For videos, use Mux aspect ratio
   if (isVideo.value) {
-    const videoAspect = parseMuxAspectRatio(props.media.videoMeta?.aspectRatio)
-    if (videoAspect) return videoAspect
+    const videoAspect = parseMuxAspectRatio(props.media.videoMeta?.aspectRatio);
+    if (videoAspect) return videoAspect;
   }
   // For images, use dimensions
   if (width.value && height.value) {
-    return width.value / height.value
+    return width.value / height.value;
   }
-  return 1 // fallback to square
-})
+  return 1; // fallback to square
+});
+
+/** Passed to Vid only when Mux reports it; otherwise Vid defaults to 16/9 (not square). */
+const vidAspectProp = computed((): number | undefined => {
+  if (!isVideo.value) return undefined;
+  return parseMuxAspectRatio(props.media.videoMeta?.aspectRatio) ?? undefined;
+});
 
 // Sizes hint for NuxtImg — based on actual rendered card width
 const sizesHint = computed(() => {
-  const h = props.rowHeight ?? 330
-  const w = Math.round(h * aspectRatio.value)
-  return `${w}px`
-})
+  const h = props.rowHeight ?? 330;
+  const w = Math.round(h * aspectRatio.value);
+  return `${w}px`;
+});
 </script>
 
 <template>
@@ -79,6 +87,7 @@ const sizesHint = computed(() => {
       v-if="isVideo"
       :playbackId="media.muxPlaybackId"
       preset="ambient"
+      :aspect-ratio="vidAspectProp"
     />
     <!-- Image -->
     <Pic
@@ -113,7 +122,7 @@ const sizesHint = computed(() => {
   }
 
   :deep(.pic),
-  :deep(.vid) {
+  :deep(.vid-wrapper) {
     display: block;
     width: 100%;
     height: 100%;

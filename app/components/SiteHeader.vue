@@ -49,7 +49,12 @@
             <NuxtLink
               to="/work"
               class="nav-link"
-              :class="{ 'is-active': !route.query.category }"
+              :class="{
+                'is-active': !activeCategory,
+                'is-inactive': !!activeCategory,
+              }"
+              active-class=""
+              exact-active-class=""
             >
               <Text>All</Text>
             </NuxtLink>
@@ -58,7 +63,13 @@
             <NuxtLink
               :to="{ path: '/work', query: { category: cat.slug.current } }"
               class="nav-link"
-              :class="{ 'is-active': route.query.category === cat.slug.current }"
+              :class="{
+                'is-active': activeCategory === cat.slug.current,
+                'is-inactive':
+                  !!activeCategory && activeCategory !== cat.slug.current,
+              }"
+              active-class=""
+              exact-active-class=""
             >
               <Text>{{ cat.name }}</Text>
             </NuxtLink>
@@ -116,6 +127,10 @@ const routeName = computed(() => route.name?.toString().split("___")[0] ?? "");
 // Lags behind routeName — controls what's rendered while animations play
 const visibleRoute = ref(routeName.value);
 
+const activeCategory = computed(
+  () => route.query.category as string | undefined,
+);
+
 // ─── Primary nav ──────────────────────────────────────────────────────────────
 
 const pages = [
@@ -137,7 +152,6 @@ const aboutSections: Section[] = [
   { label: "Footprint", id: "footprint" },
   { label: "Colophon", id: "colophon" },
 ];
-
 
 const logsFilters = ["All", "Design", "Code", "Writing"];
 
@@ -286,16 +300,15 @@ onUnmounted(() => {
 
 .nav-link {
   color: var(--foreground-quaternary);
-  // color: inherit;
   display: block;
-  // text-decoration: none;
-  // background: none;
   border: none;
   padding: 0;
   background: 0;
   cursor: pointer;
   appearance: none;
-  // transition: color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    opacity var(--transition-fast);
 
   &:hover {
     color: var(--foreground-primary);
@@ -304,6 +317,10 @@ onUnmounted(() => {
   &.router-link-active,
   &.is-active {
     color: var(--foreground-primary);
+  }
+
+  &.is-inactive {
+    color: var(--foreground-quaternary);
   }
 
   // &:disabled {
