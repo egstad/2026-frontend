@@ -1,100 +1,78 @@
 <template>
-  <div ref="containerEl" class="masonry" :style="cssVars">
-    <div
-      v-for="(item, i) in items"
-      :key="item._id"
-      class="masonry__item"
-      :style="{ gridRowEnd: `span ${spans[i] ?? 50}` }"
-    >
-      <slot :item="item" :index="i" />
-    </div>
-  </div>
+  <MasonryWall
+    class="masonry-root"
+    :items="items"
+    :min-columns="columns"
+    :max-columns="columns"
+    :column-width="1"
+    :gap="MASONRY_GAP_PX"
+    :ssr-columns="columns"
+    :key-mapper="itemKey"
+  >
+    <template #default="{ item, index }">
+      <div
+        class="masonry__card"
+        :style="{ aspectRatio: String(item.aspectRatio || 1) }"
+      >
+        <slot :item="item" :index="index" />
+      </div>
+    </template>
+  </MasonryWall>
 </template>
 
 <script setup lang="ts">
-// CSS grid masonry: grid-auto-rows + per-item span calculated from aspect ratio.
-// Items flow left-to-right (row order) — no reordering as new items load.
-// Row track + gap both use var(--unit-tinier); pixel value is read for span math.
+// @yeger/vue-masonry-wall: Vue 3 / SSR port of fuxingloh/vue-masonry-wall (pure Vue,
+// no Metafizzy DOM). See https://github.com/DerYeger/yeger/tree/main/packages/vue-masonry-wall
 
-function readUnitTinierPx(el: HTMLElement): number {
-  const raw = getComputedStyle(el).getPropertyValue("--unit-tinier").trim();
-  const n = parseFloat(raw);
-  return Number.isFinite(n) && n > 0 ? n : 8;
-}
+import type { KeyMapper } from "@yeger/vue-masonry-wall";
+import { MasonryWall } from "@yeger/vue-masonry-wall";
 
 import type { Artifact } from "~/types/sanity";
 
 export type MasonryItem = Artifact & { aspectRatio: number };
+
+/** Matches previous grid gutter (px). */
+const MASONRY_GAP_PX = 8;
 
 const props = defineProps<{
   items: MasonryItem[];
   columns: number;
 }>();
 
-const containerEl = ref<HTMLElement | null>(null);
-const containerWidth = ref(0);
-/** Resolved px for var(--unit-tinier) on the container (matches grid-auto-rows + gap). */
-const gridUnitPx = ref(8);
-
-const colWidth = computed(() => {
-  const w = containerWidth.value;
-  const gap = gridUnitPx.value;
-  if (!w) return 200;
-  return (w - (props.columns - 1) * gap) / props.columns;
-});
-
-// span = ceil((itemHeight + GAP) / (ROW + GAP))
-// This ensures the item fits in its grid area with correct row gaps.
-const spans = computed(() => {
-  const u = gridUnitPx.value;
-  return props.items.map((item) => {
-    const h = colWidth.value / (item.aspectRatio || 1);
-    return Math.ceil((h + u) / (2 * u));
-  });
-});
-
-const cssVars = computed(() => ({ "--masonry-cols": props.columns }));
-
-onMounted(() => {
-  const el = containerEl.value;
-  if (!el) return;
-  gridUnitPx.value = readUnitTinierPx(el);
-  const ro = new ResizeObserver((entries) => {
-    containerWidth.value = entries[0]?.contentRect.width ?? 0;
-    if (containerEl.value) gridUnitPx.value = readUnitTinierPx(containerEl.value);
-  });
-  ro.observe(el);
-  onUnmounted(() => ro.disconnect());
-});
+const itemKey: KeyMapper<MasonryItem> = (item) => item._id;
 </script>
 
 <style lang="scss" scoped>
-.masonry {
-  display: grid;
-  grid-template-columns: repeat(var(--masonry-cols, 2), 1fr);
-  grid-auto-rows: var(--unit-tinier);
-  gap: var(--unit-tinier);
+.masonry-root {
+  width: 100%;
 }
 
-.masonry__item {
+.masonry-root :deep(.masonry-item) {
+  min-width: 0;
+}
+
+.masonry__card {
+  width: 100%;
+  min-height: 0;
   overflow: hidden;
+  background: var(--background-secondary);
+}
 
-  // Force the slotted card to fill the computed grid area exactly
-  :deep(.media-card) {
-    display: block;
-    width: 100%;
-    height: 100%;
-    aspect-ratio: unset;
-    margin: 0;
-    max-width: unset;
-  }
+.masonry__card :deep(.media-card) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: unset;
+  margin: 0;
+  max-width: unset;
+}
 
-  :deep(img),
-  :deep(video) {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+.masonry__card :deep(img),
+.masonry__card :deep(video) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 </style>
