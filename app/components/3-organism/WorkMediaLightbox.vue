@@ -225,6 +225,27 @@ const videoOverlayRef = ref<HTMLElement | null>(null);
 const showVideoOverlay = ref(false);
 
 let isAnimating = false;
+let _pausedVideos: HTMLVideoElement[] = [];
+
+/** Pause every page video that isn't inside the lightbox stage, remembering
+ *  which ones were playing so resumeBackgroundVideos() can restore them. */
+function pauseBackgroundVideos() {
+  _pausedVideos = [];
+  const stageVideos = new Set(
+    localStageEl.value?.querySelectorAll<HTMLVideoElement>("video") ?? [],
+  );
+  document.querySelectorAll<HTMLVideoElement>("video").forEach((v) => {
+    if (!stageVideos.has(v) && !v.paused) {
+      v.pause();
+      _pausedVideos.push(v);
+    }
+  });
+}
+
+function resumeBackgroundVideos() {
+  _pausedVideos.forEach((v) => v.play().catch(() => {}));
+  _pausedVideos = [];
+}
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -275,6 +296,10 @@ async function runOpenSequence() {
 
   await nextTick();
   await rAF(2);
+
+  // Teleport is now active — the lightbox video (if any) is inside the stage
+  // and will be excluded from the pause sweep below.
+  pauseBackgroundVideos();
 
   const flipEl = activeFlipRootEl.value;
   const firstRect = consumeFirstRect();
@@ -367,19 +392,21 @@ async function runOpenSequence() {
   // (which would reset the src to the placeholder URL).
   upgradeImgSrcset();
 
-  // For video artifacts opened from the text view (static thumbnail teleported),
-  // fade in a Vid overlay on top of the thumbnail now that it's in position.
-  if (activeArtifact.value?.mediaType === "video" && activeArtifact.value.muxPlaybackId) {
+  // After the FLIP, handle video audio and overlay based on what was teleported.
+  const teleportedVideo = sharedStageEl.value?.querySelector<HTMLVideoElement>("video");
+  if (teleportedVideo) {
+    // Card open — the actual Vid was teleported. Unmute it now that it's settled
+    // in the lightbox. Do NOT spawn the overlay (the real video is already here).
+    teleportedVideo.muted = false;
+    if (teleportedVideo.paused) teleportedVideo.play().catch(() => {});
+  } else if (activeArtifact.value?.mediaType === "video" && activeArtifact.value.muxPlaybackId) {
+    // Text-row open — only a static thumbnail was teleported. Fade in the Vid overlay.
     showVideoOverlay.value = true;
     await nextTick();
     if (videoOverlayRef.value) {
       gsap.fromTo(videoOverlayRef.value, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" });
     }
   }
-
-  // Ensure video keeps playing after DOM move (card-based video opens)
-  const video = sharedStageEl.value?.querySelector<HTMLVideoElement>("video");
-  if (video?.paused) video.play().catch(() => {});
 
   // ④ Fade in toolbar + details
   await gsap.to([toolbarRef.value, detailsRef.value], {
@@ -399,6 +426,15 @@ async function runOpenSequence() {
 async function handleClose() {
   if (isAnimating || !activeArtifact.value) return;
   isAnimating = true;
+
+  // Mute any teleported video immediately — no audio leaking during close animation.
+  const teleportedVideo = sharedStageEl.value?.querySelector<HTMLVideoElement>("video");
+  if (teleportedVideo) teleportedVideo.muted = true;
+
+  // Resume background videos now so they appear to have never stopped,
+  // while the lightbox is still closing behind the scrim.
+  resumeBackgroundVideos();
+
   // Stop live-resize before the close FLIP so dimension changes don't
   // invalidate the animation's fromRect measurement.
   resizeRO?.disconnect();
@@ -559,7 +595,7 @@ async function copyLink() {
     <!-- ② Scrollable content: stage + details stacked vertically -->
     <div class="lb__scroll">
       <!-- Stage — Teleport destination for card opens; direct media for text-row opens -->
-      <div ref="localStageEl" class="lb__stage">
+      <div ref="localStageEl" class="lb__stage" @click.self="handleClose">
         <!-- No-teleport path: direct media (fade open, no FLIP) -->
         <template v-if="activeArtifact && !hasTeleport">
           <div class="lb-flip-root">
@@ -567,6 +603,7 @@ async function copyLink() {
               v-if="activeArtifact.mediaType === 'video' && activeArtifact.muxPlaybackId"
               :playbackId="activeArtifact.muxPlaybackId"
               preset="ambient"
+              :muted="false"
               :aspect-ratio="mediaAspectRatio(activeArtifact) || undefined"
             />
             <Pic
@@ -591,6 +628,7 @@ async function copyLink() {
           <Vid
             :playbackId="activeArtifact.muxPlaybackId"
             preset="ambient"
+            :muted="false"
             :aspect-ratio="mediaAspectRatio(activeArtifact) || undefined"
           />
         </div>

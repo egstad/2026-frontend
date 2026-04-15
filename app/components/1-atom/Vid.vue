@@ -176,6 +176,10 @@ const handleCanPlay = () => {
   emit("loaded");
 };
 
+const handleVolumeChange = () => {
+  if (videoRef.value) isMuted.value = videoRef.value.muted;
+};
+
 const handleError = () => {
   isLoading.value = false;
   hasError.value = true;
@@ -429,6 +433,7 @@ onUnmounted(() => {
       @loadedmetadata="handleLoadedMetadata"
       @error="handleError"
       @canplay="handleCanPlay"
+      @volumechange="handleVolumeChange"
       @play="handlePlay"
       @pause="handlePause"
       @click="handleVideoClick"
