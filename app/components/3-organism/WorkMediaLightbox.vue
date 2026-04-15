@@ -726,6 +726,7 @@ async function copyLink() {
   transform: translate(-50%, -50%);
   width: var(--lb-flip-w, auto);
   height: var(--lb-flip-h, auto);
+  z-index: 1;
 
   :deep(.vid-wrapper),
   :deep(.vid) {
