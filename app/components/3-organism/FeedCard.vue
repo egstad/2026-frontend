@@ -34,11 +34,11 @@
             :alt="media.alt || media.title"
             :width="width"
             :height="height"
-            external
+            :srcset="imageSrcset"
             :sizes="picSizes"
+            :placeholder="lqipUrl"
             :priority="priority"
             :loading="priority ? 'eager' : 'lazy'"
-            :placeholder="true"
           />
           <div v-else class="feed-card__placeholder" />
         </div>
@@ -74,7 +74,7 @@
 
 <script setup lang="ts">
 import type { Artifact } from "~/types/sanity";
-import { lightboxImageUrl } from "~/utils/sanityImage";
+import { lightboxImageUrl, sanityImageSrcset, sanityLqipUrl, SRCSET_WIDTHS } from "~/utils/sanityImage";
 
 const props = defineProps<{
   media: Artifact;
@@ -178,11 +178,23 @@ const vidAspect = computed(
   () => parseMuxAspect(props.media.videoMeta?.aspectRatio) ?? undefined,
 );
 
-// NuxtImg breakpoint format so it can compute proper srcset widths per
-// breakpoint. CSS media-query strings bypass NuxtImg's width calculation and
-// can cause it to fall back to a tiny placeholder-sized image.
-// Matches the responsive widths in the .feed-card CSS above.
-const picSizes = "sm:100vw md:65vw lg:45vw xl:40vw";
+// Srcset covering the full range of Sanity-servable widths.
+// The browser picks the right entry for the rendered CSS width × devicePixelRatio
+// without any framework involvement.
+const imageSrcset = computed(() => {
+  const url = props.media.imageUrl;
+  return url && !isVideo.value ? sanityImageSrcset(url, SRCSET_WIDTHS) : undefined;
+});
+
+// Tiny placeholder URL — loaded immediately, gives the blur-up effect while
+// the correctly-sized srcset entry loads.
+const lqipUrl = computed(() => {
+  const url = props.media.imageUrl;
+  return url && !isVideo.value ? sanityLqipUrl(url) : undefined;
+});
+
+// Standard CSS sizes — matches the responsive widths in the .feed-card CSS.
+const picSizes = "(min-width: 1280px) 40vw, (min-width: 1024px) 45vw, (min-width: 768px) 65vw, 100vw";
 </script>
 
 <style lang="scss" scoped>

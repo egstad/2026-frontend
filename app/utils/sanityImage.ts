@@ -52,6 +52,16 @@ export function sanityImageUrl(baseUrl: string, options: ImageUrlOptions): strin
 }
 
 /**
+ * Build a tiny LQIP (low-quality image placeholder) URL.
+ * The resulting image is ~40px wide at q=10 — a few hundred bytes.
+ * Stretch it to fill the container and it acts as a blurred preview
+ * while the full srcset image loads.
+ */
+export function sanityLqipUrl(baseUrl: string): string {
+  return `${baseUrl}?w=40&q=10&auto=format&fit=clip`
+}
+
+/**
  * Build srcset string for responsive images
  */
 export function sanityImageSrcset(

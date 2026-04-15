@@ -1,10 +1,29 @@
 <template>
-  <figure class="pic" :class="picClasses">
+  <figure class="pic" :class="picClasses" :style="lqipStyle">
+    <!-- Explicit srcset: caller owns resolution — bypass NuxtImg entirely.
+         The browser uses w-descriptor srcset + sizes to pick the right
+         candidate, including DPR, without any framework involvement. -->
+    <img
+      v-if="srcset"
+      ref="imageRef"
+      :src="src"
+      :srcset="srcset"
+      :sizes="computedSizes || undefined"
+      :alt="alt"
+      :width="width"
+      :height="height"
+      :loading="priority ? 'eager' : loading"
+      :fetchpriority="priority ? 'high' : undefined"
+      @load="onLoad"
+      @error="onError"
+      class="pic__image"
+    />
+
     <!-- Sanity CDN images: NuxtImg with built-in Sanity provider.
          Handles srcset generation, auto=format (avif/webp), quality,
          and DPR selection natively via the sizes/srcset mechanism. -->
     <NuxtImg
-      v-if="sanityAssetPath"
+      v-else-if="sanityAssetPath"
       ref="imageRef"
       provider="sanity"
       :src="sanityAssetPath"
@@ -23,13 +42,11 @@
       class="pic__image"
     />
 
-    <!-- Other external images (non-Sanity) -->
+    <!-- Other external images (non-Sanity, no explicit srcset) -->
     <img
       v-else-if="external"
       ref="imageRef"
       :src="src"
-      :srcset="srcset || undefined"
-      :sizes="srcset ? computedSizes || undefined : undefined"
       :alt="alt"
       :width="width"
       :height="height"
@@ -200,6 +217,20 @@ const computedSizes = computed(() => props.sizes || DEFAULT_SIZES);
 /** Quality for the local NuxtImg path. Explicit prop or 80 default. */
 const computedQuality = computed(() => props.quality ?? 80);
 
+/**
+ * When `placeholder` is a URL string, use it as a background-image LQIP.
+ * The tiny image fills the figure immediately; the full-res image fades in
+ * on top once it loads.
+ */
+const lqipStyle = computed(() => {
+  if (typeof props.placeholder !== 'string') return {};
+  return {
+    backgroundImage: `url(${props.placeholder})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  };
+});
+
 // -------------------------
 // Event handlers
 // -------------------------
@@ -287,6 +318,11 @@ const picClasses = computed(() => {
   height: 100%;
   display: flex;
   transition: opacity var(--transition);
+
+  // Fade in over the LQIP background
+  .pic--loading:has([style*="backgroundImage"]) & {
+    opacity: 0;
+  }
 
   .pic--error & {
     opacity: 0.3;

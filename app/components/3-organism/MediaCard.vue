@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Artifact } from "~/types/sanity";
-import { lightboxImageUrl } from "~/utils/sanityImage";
+import { lightboxImageUrl, sanityImageSrcset, sanityLqipUrl, SRCSET_WIDTHS } from "~/utils/sanityImage";
 
 const props = defineProps<{
   media: Artifact;
@@ -111,11 +111,20 @@ const vidAspect = computed(
   () => parseMuxAspect(props.media.videoMeta?.aspectRatio) ?? undefined,
 );
 
-const sizesHint = computed(() => `${Math.round(330 * aspectRatio.value)}px`);
+// Srcset covering the full range of Sanity-servable widths.
+const imageSrcset = computed(() => {
+  const url = props.media.imageUrl;
+  return url && !isVideo.value ? sanityImageSrcset(url, SRCSET_WIDTHS) : undefined;
+});
 
-// Keep sizes constant — the lightbox upgrades srcset/sizes imperatively
-// after the FLIP animation to avoid triggering NuxtImg's placeholder reset.
-const picSizes = computed(() => sizesHint.value);
+const lqipUrl = computed(() => {
+  const url = props.media.imageUrl;
+  return url && !isVideo.value ? sanityLqipUrl(url) : undefined;
+});
+
+// sizes hint: fixed CSS px width of the card at its default row height.
+// The browser uses this × devicePixelRatio to pick from the srcset.
+const picSizes = computed(() => `${Math.round(330 * aspectRatio.value)}px`);
 </script>
 
 <template>
@@ -151,11 +160,11 @@ const picSizes = computed(() => sizesHint.value);
           :alt="media.alt || media.title"
           :width="width"
           :height="height"
-          external
+          :srcset="imageSrcset"
           :sizes="picSizes"
+          :placeholder="lqipUrl"
           :priority="priority"
           :loading="priority ? 'eager' : 'lazy'"
-          :placeholder="true"
         />
         <div v-else class="media-card__placeholder" />
       </div>
