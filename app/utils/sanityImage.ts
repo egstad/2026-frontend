@@ -79,6 +79,51 @@ export function sanityImageSrcset(
 export const SRCSET_WIDTHS = [400, 600, 800, 1200, 1600, 2000, 2400, 3200, 4000]
 
 /**
+ * Compute the URL that WorkMediaLightbox will use when it opens this image,
+ * based on current viewport dimensions, the asset's aspect ratio, and the
+ * optional natural-size cap (prevents upscaling past source resolution).
+ *
+ * Mirrors the contain-fit + cap logic in applyFlipDimensions exactly so the
+ * URL is byte-for-byte identical to what upgradeImgSrcset will set — meaning
+ * a preload started here will be a guaranteed HTTP cache hit.
+ *
+ * Returns null on the server or for missing inputs.
+ */
+export function lightboxImageUrl(
+  imageUrl: string,
+  aspectRatio: number,
+  opts: { maxNaturalW?: number; maxNaturalH?: number } = {},
+): string | null {
+  if (!import.meta.client || !imageUrl || !aspectRatio) return null
+
+  const sw = window.innerWidth
+  const vh = window.innerHeight
+  const naturalH = sw / aspectRatio
+  let w = naturalH <= vh ? sw : vh * aspectRatio
+  let h = naturalH <= vh ? naturalH : vh
+
+  const { maxNaturalW, maxNaturalH } = opts
+  if (maxNaturalW !== undefined || maxNaturalH !== undefined) {
+    const scaleByW = maxNaturalW !== undefined && w > maxNaturalW ? maxNaturalW / w : 1
+    const scaleByH = maxNaturalH !== undefined && h > maxNaturalH ? maxNaturalH / h : 1
+    const scale = Math.min(scaleByW, scaleByH)
+    if (scale < 1) {
+      w = Math.round(w * scale)
+      // h scaled proportionally but not needed for the URL
+    }
+  }
+
+  // physicalW already accounts for DPR — do NOT pass dpr to sanityImageUrl.
+  // Sanity's dpr param multiplies w server-side, so passing both would serve
+  // cssW × dpr² pixels (up to 4× more data than the display needs).
+  const dpr = Math.min(Math.ceil(window.devicePixelRatio || 1), 3)
+  const physicalW = Math.round(w * dpr)
+  const targetW = SRCSET_WIDTHS.find((width) => width >= physicalW) ?? SRCSET_WIDTHS.at(-1) ?? 4000
+
+  return sanityImageUrl(imageUrl, { width: targetW })
+}
+
+/**
  * Build a Mux thumbnail URL
  */
 export function muxThumbnailUrl(

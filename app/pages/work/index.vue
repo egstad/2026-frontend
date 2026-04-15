@@ -37,7 +37,15 @@ const { data: media } = useAsyncData(
       slug,
       mediaType,
       alt,
+      autoplay,
       dateTaken,
+      locationName,
+      camera,
+      lens,
+      focalLength,
+      aperture,
+      shutterSpeed,
+      iso,
       _createdAt,
       "captionText": pt::text(caption),
       "imageUrl": image.asset->url,
@@ -48,7 +56,8 @@ const { data: media } = useAsyncData(
       "videoMeta": {
         "aspectRatio": video.asset->data.aspect_ratio
       },
-      "categories": categories[]->{ _id, name, slug }
+      "categories": categories[]->{ _id, name, slug },
+      "tags": tags[]->{ _id, name, slug }
     }
   `),
   { lazy: false },
@@ -224,6 +233,13 @@ function resultsAppear(el: Element, done: () => void) {
       );
       return;
     }
+    // @before-appear may have hidden the CONTAINER (when cards weren't in the DOM
+    // yet because async data resolved after the hook fired). Cards may also have
+    // arrived after that hook, so their opacity could be either 0 (set by the hook)
+    // or natural (1, if they mounted after). Normalise both cases here: restore the
+    // container and ensure every card starts at 0 so the stagger plays correctly.
+    gsap.set(el, { clearProps: "opacity" });
+    gsap.set(cards, { opacity: 0 });
     const { inView, offView } = splitInOffViewport(cards);
     if (offView.length) gsap.set(offView, { opacity: 1 });
     const targets = inView.length ? inView : cards;
@@ -262,6 +278,10 @@ function resultsEnter(el: Element, done: () => void) {
       );
       return;
     }
+    // Mirror the same container-restore + card-normalise pattern from resultsAppear
+    // to guard against the same async-data timing race.
+    gsap.set(el, { clearProps: "opacity" });
+    gsap.set(cards, { opacity: 0 });
     const { inView, offView } = splitInOffViewport(cards);
     if (offView.length) gsap.set(offView, { opacity: 1 });
     const targets = inView.length ? inView : cards;
@@ -372,6 +392,30 @@ const masonryItems = computed(() =>
     aspectRatio: getAspectRatio(item),
   })),
 );
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+// Freeze the column layout while the lightbox is open.
+// masonryColumns depends on device.winWidth, so resizing across the 1024px
+// breakpoint toggles the v-if between MasonryGrid and the flex grid, destroying
+// every MediaCard — including the active one. That remounts Vid.vue, which
+// reinitialises HLS.js and restarts the video from the beginning.
+// Solution: snapshot the column count when the lightbox opens and hold it there
+// until the lightbox closes, then let the grid update to the current viewport.
+
+const { activeArtifact: lbActiveArtifact } = useWorkLightbox();
+const frozenMasonryColumns = ref<number | null>(null);
+
+watch(() => !!lbActiveArtifact.value, (isOpen) => {
+  frozenMasonryColumns.value = isOpen ? masonryColumns.value : null;
+});
+
+const effectiveMasonryColumns = computed(() =>
+  frozenMasonryColumns.value !== null
+    ? frozenMasonryColumns.value
+    : masonryColumns.value,
+);
+
+// Provide the current filtered list to MediaCard / FeedCard so every card
 </script>
 
 <template>
@@ -456,12 +500,12 @@ const masonryItems = computed(() =>
 
           <div v-else-if="displayMedia.length" class="media-results">
             <MasonryGrid
-              v-if="masonryColumns > 0"
+              v-if="effectiveMasonryColumns > 0"
               :items="masonryItems"
-              :columns="masonryColumns"
+              :columns="effectiveMasonryColumns"
             >
               <template #default="{ item, index }">
-                <MediaCard :media="item" :priority="index < 6" />
+                <MediaCard :key="item._id" :media="item" :priority="index < 6" />
               </template>
             </MasonryGrid>
 
@@ -491,6 +535,9 @@ const masonryItems = computed(() =>
 
       <!-- Sentinel: triggers next batch when scrolled into view -->
       <div ref="sentinelEl" class="sentinel" aria-hidden="true" />
+
+      <!-- Lightbox: dialog uses the top-layer so DOM position doesn't matter -->
+      <WorkMediaLightbox />
     </Column>
   </Grid>
 </template>
