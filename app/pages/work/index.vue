@@ -7,7 +7,11 @@ import { gsap } from "gsap";
 
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
-import { sortFromQuery, viewFromQuery, categoryFromQuery } from "~/utils/workQuery";
+import {
+  sortFromQuery,
+  viewFromQuery,
+  categoryFromQuery,
+} from "~/utils/workQuery";
 import type { SortOption, ViewOption } from "~/utils/workQuery";
 
 PageSetup({
@@ -90,11 +94,15 @@ function setSort(option: SortOption) {
   if (option === "random" && activeSort.value === "random") {
     artifactStore.reshuffle();
   }
-  router.push({ query: buildQuery({ s: option === "random" ? undefined : option }) });
+  router.push({
+    query: buildQuery({ s: option === "random" ? undefined : option }),
+  });
 }
 
 function setView(option: ViewOption) {
-  router.push({ query: buildQuery({ v: option === "inline" ? undefined : option }) });
+  router.push({
+    query: buildQuery({ v: option === "inline" ? undefined : option }),
+  });
 }
 
 // ─── View ─────────────────────────────────────────────────────────────────────
@@ -339,9 +347,12 @@ function resultsLeave(el: Element, done: () => void) {
 }
 
 // Reset to first page when filter, sort, or view changes
-watch([activeCategory, activeSort, activeView, () => artifactStore.randomSeed], () => {
-  visibleCount.value = PAGE_SIZE.value;
-});
+watch(
+  [activeCategory, activeSort, activeView, () => artifactStore.randomSeed],
+  () => {
+    visibleCount.value = PAGE_SIZE.value;
+  },
+);
 
 // Masonry must not switch on until after mount: the dimensions plugin sets
 // winWidth before hydration, so the client would otherwise pick MasonryGrid
@@ -510,7 +521,10 @@ const effectiveMasonryColumns = computed(() =>
           </div>
 
           <!-- Text view: table of contents -->
-          <div v-else-if="activeView === 'text' && displayMedia.length" class="work-text">
+          <div
+            v-else-if="activeView === 'text' && displayMedia.length"
+            class="work-text"
+          >
             <WorkTextRow
               v-for="item in visibleMedia"
               :key="item._id"
@@ -611,7 +625,17 @@ const effectiveMasonryColumns = computed(() =>
 }
 
 .work-text {
-  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  // border-top: 1px solid var(--border-primary);
+
+  @include laptop {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: var(--grid-gap);
+  }
+  @include desktop {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .feed {

@@ -170,20 +170,21 @@ const videoThumbSrc = computed(() =>
 
 <style lang="scss" scoped>
 .work-text__row {
-  --thumbnail-size: var(--unit-bigger);
+  --thumbnail-size: var(--unit-big);
+
+  @include tablet {
+    --thumbnail-size: var(--unit-bigger);
+  }
 
   display: grid;
   grid-template-columns: var(--thumbnail-size) 1fr;
+  gap: 0 var(--unit-tiny);
   align-items: center;
-  gap: 0 var(--grid-margin);
-  padding: var(--unit-tinier) 0;
-  border-bottom: 1px solid var(--border-primary);
+  padding: var(--unit-tiny) 0;
+  border-top: 1px solid var(--border-primary);
   cursor: zoom-in;
   transition: opacity var(--transition-fast);
 
-  &:first-child {
-    border-top: 1px solid var(--border-primary);
-  }
   &:focus {
     outline: 0;
   }
@@ -245,7 +246,6 @@ const videoThumbSrc = computed(() =>
 .work-text__content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
 }
 
