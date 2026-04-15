@@ -4,7 +4,6 @@ import { lightboxImageUrl } from "~/utils/sanityImage";
 
 const props = defineProps<{
   media: Artifact;
-  rowHeight?: number;
   priority?: boolean;
 }>();
 
@@ -75,10 +74,6 @@ function onHover() {
   );
   if (!url) return;
   const img = new Image();
-  const t0 = Date.now();
-  console.log("[lb] hover preload start →", url);
-  img.onload = () => console.log(`[lb] hover preload done in ${Date.now() - t0}ms`);
-  img.onerror = () => console.warn("[lb] hover preload failed");
   img.src = url;
 }
 
@@ -116,10 +111,7 @@ const vidAspect = computed(
   () => parseMuxAspect(props.media.videoMeta?.aspectRatio) ?? undefined,
 );
 
-const sizesHint = computed(() => {
-  const h = props.rowHeight ?? 330;
-  return `${Math.round(h * aspectRatio.value)}px`;
-});
+const sizesHint = computed(() => `${Math.round(330 * aspectRatio.value)}px`);
 
 // Keep sizes constant — the lightbox upgrades srcset/sizes imperatively
 // after the FLIP animation to avoid triggering NuxtImg's placeholder reset.

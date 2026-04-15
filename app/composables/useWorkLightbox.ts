@@ -16,8 +16,16 @@ export const sharedStageEl = ref<HTMLElement | null>(null);
 /** The .lb-flip-root wrapper on the active card (registered by MediaCard/FeedCard). */
 export const activeFlipRootEl = ref<HTMLElement | null>(null);
 
-/** The card root element to return focus / compute close-rect from. */
+/** True when the open was triggered from a card that teleports media into the stage.
+ *  False for text-row opens — the lightbox renders media directly in the stage. */
+export const hasTeleport = ref(false);
+
+/** The card root element — receives focus when the lightbox closes. */
 const triggerEl = ref<HTMLElement | null>(null);
+
+/** Element whose bounds the close FLIP animates toward.
+ *  Defaults to triggerEl when not explicitly provided. */
+const closeFocusEl = ref<HTMLElement | null>(null);
 
 /** Bounds of the media at the moment open() was called (First rect for FLIP). */
 const pendingFirstRect = shallowRef<DOMRect | null>(null);
@@ -41,14 +49,21 @@ export function useWorkLightbox() {
   function open(
     item: Artifact,
     options: {
-      /** The card root — restored focus + close FLIP target. */
+      /** Receives focus when the lightbox closes. */
       trigger: HTMLElement;
-      /** Bounds of the media element before opening (FLIP First rect). */
-      firstRect: DOMRect;
+      /** Bounds of the media element before opening (FLIP First rect).
+       *  Omit for opens without a visible media source. */
+      firstRect?: DOMRect;
+      /** Element whose bounds the close FLIP flies back to.
+       *  Defaults to `trigger` when omitted. Use this when the focus target
+       *  (e.g. a full-width row) differs from the media thumbnail. */
+      closeTarget?: HTMLElement;
     },
   ) {
     triggerEl.value = options.trigger;
-    pendingFirstRect.value = options.firstRect;
+    closeFocusEl.value = options.closeTarget ?? options.trigger;
+    pendingFirstRect.value = options.firstRect ?? null;
+    hasTeleport.value = !!options.firstRect;
     activeArtifact.value = item;
   }
 
@@ -57,8 +72,10 @@ export function useWorkLightbox() {
     activeArtifact.value = null;
     pendingFirstRect.value = null;
     activeFlipRootEl.value = null;
+    hasTeleport.value = false;
     const t = triggerEl.value;
     triggerEl.value = null;
+    closeFocusEl.value = null;
     nextTick(() => t?.focus());
   }
 
@@ -70,7 +87,7 @@ export function useWorkLightbox() {
   }
 
   function getTriggerEl(): HTMLElement | null {
-    return triggerEl.value;
+    return closeFocusEl.value ?? triggerEl.value;
   }
 
   return {
@@ -79,6 +96,7 @@ export function useWorkLightbox() {
     // DOM refs
     sharedStageEl,
     activeFlipRootEl,
+    hasTeleport,
     // Actions
     open,
     _closeState,

@@ -7,7 +7,8 @@ import { gsap } from "gsap";
 
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
-import { workCategoryFromQuery } from "~/utils/workCategoryQuery";
+import { sortFromQuery, viewFromQuery, categoryFromQuery } from "~/utils/workQuery";
+import type { SortOption, ViewOption } from "~/utils/workQuery";
 
 PageSetup({
   seoMeta: { title: "Artifact" },
@@ -63,37 +64,40 @@ const { data: media } = useAsyncData(
   { lazy: false },
 );
 
-// ─── Category filter (URL query param) ────────────────────────────────────────
+// ─── URL-driven filter state (?c= category, ?s= sort, ?v= view) ──────────────
 
-const activeCategory = computed(() =>
-  workCategoryFromQuery(route.query.category),
-);
+const activeCategory = computed(() => categoryFromQuery(route.query.c));
+const activeSort = computed(() => sortFromQuery(route.query.s));
+const activeView = computed(() => viewFromQuery(route.query.v));
 
-function setCategory(slug: string | null) {
-  router.push({ query: slug ? { category: slug } : {} });
+function buildQuery(patch: Record<string, string | undefined>) {
+  const q: Record<string, string> = {};
+  for (const key of ["c", "s", "v"] as const) {
+    // Use patch value if the key was explicitly provided, otherwise keep current
+    const val = Object.hasOwn(patch, key)
+      ? patch[key]
+      : (route.query[key] as string | undefined);
+    if (val) q[key] = val;
+  }
+  return q;
 }
 
-// ─── Sort ─────────────────────────────────────────────────────────────────────
-
-type SortOption = "random" | "newest" | "oldest";
-const activeSort = ref<SortOption>("random");
+function setCategory(slug: string | null) {
+  router.push({ query: buildQuery({ c: slug || undefined }) });
+}
 
 function setSort(option: SortOption) {
   if (option === "random" && activeSort.value === "random") {
     artifactStore.reshuffle();
   }
-  activeSort.value = option;
+  router.push({ query: buildQuery({ s: option === "random" ? undefined : option }) });
+}
+
+function setView(option: ViewOption) {
+  router.push({ query: buildQuery({ v: option === "inline" ? undefined : option }) });
 }
 
 // ─── View ─────────────────────────────────────────────────────────────────────
-
-type ViewOption = "inline" | "inline-small" | "feed";
-const activeView = ref<ViewOption>("inline");
-
-const rowHeight = computed(() => {
-  if (activeView.value === "inline-small") return 100;
-  return 330;
-});
 
 // ─── Shuffle ──────────────────────────────────────────────────────────────────
 
@@ -161,8 +165,12 @@ const displayMedia = computed(() => {
 
 // ─── Batch rendering ──────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 50;
-const visibleCount = ref(PAGE_SIZE);
+const TEXT_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 50;
+const PAGE_SIZE = computed(() =>
+  activeView.value === "text" ? TEXT_PAGE_SIZE : DEFAULT_PAGE_SIZE,
+);
+const visibleCount = ref(PAGE_SIZE.value);
 const sentinelEl = ref<HTMLElement | null>(null);
 let sentinelObserver: IntersectionObserver | null = null;
 
@@ -177,7 +185,7 @@ const resultsAnimKey = computed(
 );
 
 const RESULT_CARD_SELECTOR =
-  ".masonry__card, .media-grid > .media-card, .feed .feed-card";
+  ".masonry__card, .media-grid > .media-card, .feed .feed-card, .work-text .work-text__row";
 
 function elementsInViewport(elements: HTMLElement[]): HTMLElement[] {
   const vw = window.innerWidth;
@@ -330,9 +338,9 @@ function resultsLeave(el: Element, done: () => void) {
   });
 }
 
-// Reset to first page when filter or sort changes
-watch([activeCategory, activeSort, () => artifactStore.randomSeed], () => {
-  visibleCount.value = PAGE_SIZE;
+// Reset to first page when filter, sort, or view changes
+watch([activeCategory, activeSort, activeView, () => artifactStore.randomSeed], () => {
+  visibleCount.value = PAGE_SIZE.value;
 });
 
 // Masonry must not switch on until after mount: the dimensions plugin sets
@@ -347,7 +355,7 @@ onMounted(() => {
     (entries) => {
       if (entries[0]?.isIntersecting) {
         visibleCount.value = Math.min(
-          visibleCount.value + PAGE_SIZE,
+          visibleCount.value + PAGE_SIZE.value,
           displayMedia.value.length,
         );
       }
@@ -405,9 +413,12 @@ const masonryItems = computed(() =>
 const { activeArtifact: lbActiveArtifact } = useWorkLightbox();
 const frozenMasonryColumns = ref<number | null>(null);
 
-watch(() => !!lbActiveArtifact.value, (isOpen) => {
-  frozenMasonryColumns.value = isOpen ? masonryColumns.value : null;
-});
+watch(
+  () => !!lbActiveArtifact.value,
+  (isOpen) => {
+    frozenMasonryColumns.value = isOpen ? masonryColumns.value : null;
+  },
+);
 
 const effectiveMasonryColumns = computed(() =>
   frozenMasonryColumns.value !== null
@@ -453,23 +464,23 @@ const effectiveMasonryColumns = computed(() =>
             <BaseButton
               size="small"
               :variant="activeView === 'inline' ? 'primary' : 'ghost'"
-              @click="activeView = 'inline'"
+              @click="setView('inline')"
             >
               inline
             </BaseButton>
             <BaseButton
               size="small"
-              :variant="activeView === 'inline-small' ? 'primary' : 'ghost'"
-              @click="activeView = 'inline-small'"
+              :variant="activeView === 'feed' ? 'primary' : 'ghost'"
+              @click="setView('feed')"
             >
-              inline small
+              feed
             </BaseButton>
             <BaseButton
               size="small"
-              :variant="activeView === 'feed' ? 'primary' : 'ghost'"
-              @click="activeView = 'feed'"
+              :variant="activeView === 'text' ? 'primary' : 'ghost'"
+              @click="setView('text')"
             >
-              feed
+              text
             </BaseButton>
           </div>
         </div>
@@ -498,6 +509,15 @@ const effectiveMasonryColumns = computed(() =>
             />
           </div>
 
+          <!-- Text view: table of contents -->
+          <div v-else-if="activeView === 'text' && displayMedia.length" class="work-text">
+            <WorkTextRow
+              v-for="item in visibleMedia"
+              :key="item._id"
+              :media="item"
+            />
+          </div>
+
           <div v-else-if="displayMedia.length" class="media-results">
             <MasonryGrid
               v-if="effectiveMasonryColumns > 0"
@@ -505,20 +525,19 @@ const effectiveMasonryColumns = computed(() =>
               :columns="effectiveMasonryColumns"
             >
               <template #default="{ item, index }">
-                <MediaCard :key="item._id" :media="item" :priority="index < 6" />
+                <MediaCard
+                  :key="item._id"
+                  :media="item"
+                  :priority="index < 6"
+                />
               </template>
             </MasonryGrid>
 
-            <div
-              v-else
-              class="media-grid"
-              :style="{ '--row-height': `${rowHeight}px` }"
-            >
+            <div v-else class="media-grid">
               <MediaCard
                 v-for="(item, index) in visibleMedia"
                 :key="item._id"
                 :media="item"
-                :row-height="rowHeight"
                 :priority="index < 3"
               />
             </div>
@@ -589,6 +608,10 @@ const effectiveMasonryColumns = computed(() =>
 .media-grid {
   display: flex;
   flex-wrap: wrap;
+}
+
+.work-text {
+  width: 100%;
 }
 
 .feed {

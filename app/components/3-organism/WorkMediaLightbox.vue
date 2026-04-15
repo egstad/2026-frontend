@@ -84,7 +84,6 @@ function upgradeImgSrcset() {
   imgEl.removeAttribute("srcset");
   imgEl.removeAttribute("sizes");
   imgEl.src = src;
-  console.log("[lb] img src swapped (cached =", imgEl.complete, ")→", src);
 }
 
 function restoreImgSrcset() {
@@ -201,6 +200,7 @@ const lb = useWorkLightbox();
 const {
   activeArtifact,
   activeFlipRootEl,
+  hasTeleport,
   sharedStageEl,
   _closeState,
   consumeFirstRect,
@@ -221,6 +221,8 @@ const dialogRef = ref<HTMLDialogElement | null>(null);
 const scrimRef = ref<HTMLElement | null>(null);
 const toolbarRef = ref<HTMLElement | null>(null);
 const detailsRef = ref<HTMLElement | null>(null);
+const videoOverlayRef = ref<HTMLElement | null>(null);
+const showVideoOverlay = ref(false);
 
 let isAnimating = false;
 
@@ -285,12 +287,29 @@ async function runOpenSequence() {
   }
 
   if (!flipEl || rm()) {
-    // Reduced motion / no flip data — apply dims and show everything
     applyCurrentFlipDimensions();
-    gsap.set(
-      [scrimRef.value, toolbarRef.value, detailsRef.value, localStageEl.value],
-      { opacity: 1 },
-    );
+    if (!hasTeleport.value && !rm()) {
+      // Text-row open — fade in stage + chrome sequentially
+      await Promise.all([
+        gsap.fromTo(
+          [scrimRef.value, localStageEl.value],
+          { opacity: 0 },
+          { opacity: 1, duration: 0.4, ease: "power2.out" },
+        ),
+        gsap.fromTo(
+          [toolbarRef.value, detailsRef.value],
+          { opacity: 0 },
+          { opacity: 1, duration: 0.35, ease: "power2.out", stagger: 0.06, delay: 0.1 },
+        ),
+      ]);
+      upgradeImgSrcset();
+    } else {
+      // Reduced motion — instant
+      gsap.set(
+        [scrimRef.value, toolbarRef.value, detailsRef.value, localStageEl.value],
+        { opacity: 1 },
+      );
+    }
     if (localStageEl.value) resizeRO?.observe(localStageEl.value);
     return;
   }
@@ -309,10 +328,6 @@ async function runOpenSequence() {
   const _imgPreload = computeLightboxImgSrc(activeArtifact.value);
   if (_imgPreload) {
     const _preloader = new Image();
-    const _t0 = Date.now();
-    console.log("[lb] prefetch start →", _imgPreload);
-    _preloader.onload = () => console.log(`[lb] prefetch done in ${Date.now() - _t0}ms`);
-    _preloader.onerror = () => console.warn("[lb] prefetch failed");
     _preloader.src = _imgPreload;
   }
 
@@ -352,7 +367,17 @@ async function runOpenSequence() {
   // (which would reset the src to the placeholder URL).
   upgradeImgSrcset();
 
-  // Ensure video keeps playing after DOM move
+  // For video artifacts opened from the text view (static thumbnail teleported),
+  // fade in a Vid overlay on top of the thumbnail now that it's in position.
+  if (activeArtifact.value?.mediaType === "video" && activeArtifact.value.muxPlaybackId) {
+    showVideoOverlay.value = true;
+    await nextTick();
+    if (videoOverlayRef.value) {
+      gsap.fromTo(videoOverlayRef.value, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" });
+    }
+  }
+
+  // Ensure video keeps playing after DOM move (card-based video opens)
   const video = sharedStageEl.value?.querySelector<HTMLVideoElement>("video");
   if (video?.paused) video.play().catch(() => {});
 
@@ -383,25 +408,43 @@ async function handleClose() {
     const flipEl = activeFlipRootEl.value;
     const home = getTriggerEl();
 
-    // Reduced motion / missing refs: instant close
+    // No FLIP element or no home target — use fade or instant close
     if (!flipEl || !home || rm()) {
       restoreImgSrcset();
       clearFlipDimensions(localStageEl.value);
       if (flipEl) gsap.set(flipEl, { clearProps: "transform,transformOrigin" });
+      if (!hasTeleport.value && !rm()) {
+        // Text-row close — fade out
+        await gsap.to(
+          [toolbarRef.value, detailsRef.value, localStageEl.value, scrimRef.value],
+          { opacity: 0, duration: 0.3, ease: "power2.in", stagger: 0.04 },
+        );
+      }
       finishClose();
       return;
     }
 
-    // ① Fade out details + toolbar
-    await gsap.to([toolbarRef.value, detailsRef.value], {
-      opacity: 0,
-      duration: 0.2,
-      ease: "power2.in",
-    });
+    // ① Fade out details + toolbar (+ video overlay if present)
+    const fadeOutTargets = [toolbarRef.value, detailsRef.value, showVideoOverlay.value ? videoOverlayRef.value : null].filter(Boolean);
+    await gsap.to(fadeOutTargets, { opacity: 0, duration: 0.2, ease: "power2.in" });
+    if (showVideoOverlay.value) {
+      showVideoOverlay.value = false;
+      await nextTick(); // remove Vid from DOM before the FLIP measures rects
+    }
 
     // Restore the original srcset/sizes before the FLIP plays back so the
     // browser reverts to the cached thumbnail (no gradient flash during close).
     restoreImgSrcset();
+
+    // Remove object-fit for the close FLIP. The stage uses contain and cards use
+    // cover, but both cause the media to independently maintain its aspect ratio
+    // inside the container. When scaleX ≠ scaleY (source and target have different
+    // aspect ratios, e.g. full media vs 80×80 thumb), the image fights the
+    // non-uniform transform at every frame, producing jumpiness. With fill the
+    // image stretches to exactly match the container at all times — imperceptible
+    // during a fast animation.
+    const mediaInFlip = flipEl.querySelector<HTMLElement>("img, video");
+    if (mediaInFlip) mediaInFlip.style.objectFit = "fill";
 
     // ② FLIP media back to card + fade scrim simultaneously
     // Re-apply dims from the *current* viewport (may have changed since open)
@@ -443,6 +486,7 @@ async function handleClose() {
 
 function finishClose() {
   resizeRO?.disconnect(); // safety net for instant-close / native-close paths
+  showVideoOverlay.value = false;
   _closeState();
   const dlg = dialogRef.value;
   if (dlg?.open) dlg.close();
@@ -514,8 +558,43 @@ async function copyLink() {
 
     <!-- ② Scrollable content: stage + details stacked vertically -->
     <div class="lb__scroll">
-      <!-- Stage — Teleport destination, always rendered so sharedStageEl is set -->
-      <div ref="localStageEl" class="lb__stage" />
+      <!-- Stage — Teleport destination for card opens; direct media for text-row opens -->
+      <div ref="localStageEl" class="lb__stage">
+        <!-- No-teleport path: direct media (fade open, no FLIP) -->
+        <template v-if="activeArtifact && !hasTeleport">
+          <div class="lb-flip-root">
+            <Vid
+              v-if="activeArtifact.mediaType === 'video' && activeArtifact.muxPlaybackId"
+              :playbackId="activeArtifact.muxPlaybackId"
+              preset="ambient"
+              :aspect-ratio="mediaAspectRatio(activeArtifact) || undefined"
+            />
+            <Pic
+              v-else-if="activeArtifact.imageUrl"
+              :src="activeArtifact.imageUrl"
+              :alt="activeArtifact.alt || activeArtifact.title"
+              :width="activeArtifact.imageMeta?.dimensions?.width"
+              :height="activeArtifact.imageMeta?.dimensions?.height"
+              external
+              sizes="100vw"
+              :placeholder="true"
+            />
+          </div>
+        </template>
+
+        <!-- Video overlay: fades in after FLIP when a static thumbnail was teleported -->
+        <div
+          v-if="showVideoOverlay && activeArtifact?.muxPlaybackId"
+          ref="videoOverlayRef"
+          class="lb__video-overlay"
+        >
+          <Vid
+            :playbackId="activeArtifact.muxPlaybackId"
+            preset="ambient"
+            :aspect-ratio="mediaAspectRatio(activeArtifact) || undefined"
+          />
+        </div>
+      </div>
 
       <template v-if="activeArtifact">
         <div ref="detailsRef" class="lb__details">
@@ -635,6 +714,23 @@ async function copyLink() {
   }
 
   :deep(.vid) {
+    object-fit: contain;
+  }
+}
+
+// ── Video overlay — covers the static thumbnail after FLIP for video artifacts ─
+.lb__video-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--lb-flip-w, auto);
+  height: var(--lb-flip-h, auto);
+
+  :deep(.vid-wrapper),
+  :deep(.vid) {
+    width: 100%;
+    height: 100%;
     object-fit: contain;
   }
 }

@@ -47,7 +47,7 @@
           class="nav-col"
         >
           <li>
-            <NuxtLink to="/work" custom v-slot="{ href, navigate }">
+            <NuxtLink :to="{ path: '/work', query: workQueryBase }" custom v-slot="{ href, navigate }">
               <a
                 :href="href"
                 class="nav-link"
@@ -64,7 +64,7 @@
           </li>
           <li v-for="cat in workCategories" :key="cat._id">
             <NuxtLink
-              :to="{ path: '/work', query: { category: cat.slug.current } }"
+              :to="{ path: '/work', query: { ...workQueryBase, c: cat.slug.current } }"
               custom
               v-slot="{ href, navigate }"
             >
@@ -121,7 +121,7 @@
 import { gsap } from "gsap";
 import { useEggMode } from "~/composables/useEggMode";
 import { useWorkCategories } from "~/composables/useWorkCategories";
-import { workCategoryFromQuery } from "~/utils/workCategoryQuery";
+import { categoryFromQuery } from "~/utils/workQuery";
 
 interface Section {
   label: string;
@@ -139,9 +139,15 @@ const routeName = computed(() => route.name?.toString().split("___")[0] ?? "");
 // Lags behind routeName — controls what's rendered while animations play
 const visibleRoute = ref(routeName.value);
 
-const activeCategory = computed(() =>
-  workCategoryFromQuery(route.query.category),
-);
+const activeCategory = computed(() => categoryFromQuery(route.query.c));
+
+// Preserve sort/view params when navigating between categories
+const workQueryBase = computed(() => {
+  const q: Record<string, string> = {};
+  if (route.query.s) q.s = route.query.s as string;
+  if (route.query.v) q.v = route.query.v as string;
+  return q;
+});
 
 /** True when no ?category=… (normalized) — “All” is the current filter. */
 const workAllSelected = computed(() => activeCategory.value === undefined);

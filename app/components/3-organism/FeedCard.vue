@@ -13,7 +13,11 @@
       @keydown.enter.prevent="activate"
       @keydown.space.prevent="activate"
     >
-      <div v-show="teleportEnabled" class="feed-card__ghost" aria-hidden="true" />
+      <div
+        v-show="teleportEnabled"
+        class="feed-card__ghost"
+        aria-hidden="true"
+      />
 
       <Teleport :disabled="!teleportEnabled" :to="teleportTo">
         <div ref="flipRootEl" class="lb-flip-root">
@@ -45,7 +49,12 @@
       <Text size="caption-2" is="h2" class="feed-card__title">
         {{ media.title }}
       </Text>
-      <Text v-if="media.captionText" size="caption-2" color="dim" class="feed-card__caption">
+      <Text
+        v-if="media.captionText"
+        size="caption-2"
+        color="dim"
+        class="feed-card__caption"
+      >
         {{ media.captionText }}
       </Text>
       <div v-if="media.categories?.length" class="feed-card__tags">
@@ -56,7 +65,8 @@
           color="dimmer"
           is="span"
           class="feed-card__tag"
-        >{{ cat.name }}</Text>
+          >{{ cat.name }}</Text
+        >
       </div>
     </footer>
   </article>
@@ -74,14 +84,24 @@ const props = defineProps<{
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
 const lb = useWorkLightbox();
-const { activeArtifact, sharedStageEl, registerFlipRoot, unregisterFlipRootIf, open } = lb;
+const {
+  activeArtifact,
+  sharedStageEl,
+  registerFlipRoot,
+  unregisterFlipRootIf,
+  open,
+} = lb;
 
 const mediaEl = ref<HTMLElement | null>(null);
 const flipRootEl = ref<HTMLElement | null>(null);
 
 const isActive = computed(() => activeArtifact.value?._id === props.media._id);
-const teleportEnabled = computed(() => isActive.value && sharedStageEl.value != null);
-const teleportTo = computed(() => sharedStageEl.value ? sharedStageEl.value : "body");
+const teleportEnabled = computed(
+  () => isActive.value && sharedStageEl.value != null,
+);
+const teleportTo = computed(() =>
+  sharedStageEl.value ? sharedStageEl.value : "body",
+);
 
 watchEffect((onCleanup) => {
   const el = flipRootEl.value;
@@ -94,20 +114,12 @@ let preloaded = false;
 function onHover() {
   if (preloaded || isVideo.value) return;
   preloaded = true;
-  const url = lightboxImageUrl(
-    props.media.imageUrl ?? "",
-    aspectRatio.value,
-    {
-      maxNaturalW: props.media.imageMeta?.dimensions?.width,
-      maxNaturalH: props.media.imageMeta?.dimensions?.height,
-    },
-  );
+  const url = lightboxImageUrl(props.media.imageUrl ?? "", aspectRatio.value, {
+    maxNaturalW: props.media.imageMeta?.dimensions?.width,
+    maxNaturalH: props.media.imageMeta?.dimensions?.height,
+  });
   if (!url) return;
   const img = new Image();
-  const t0 = Date.now();
-  console.log("[lb] hover preload start →", url);
-  img.onload = () => console.log(`[lb] hover preload done in ${Date.now() - t0}ms`);
-  img.onerror = () => console.warn("[lb] hover preload failed");
   img.src = url;
 }
 
@@ -130,14 +142,20 @@ const width = computed(() => props.media.imageMeta?.dimensions?.width);
 const height = computed(() => props.media.imageMeta?.dimensions?.height);
 
 const highResSrc = ref<string | null>(null);
-const effectiveSrc = computed(() => highResSrc.value || props.media.imageUrl || null);
+const effectiveSrc = computed(
+  () => highResSrc.value || props.media.imageUrl || null,
+);
 
 watch(isActive, (isNowActive, wasActive) => {
   if (!isNowActive && wasActive && !isVideo.value && props.media.imageUrl) {
-    highResSrc.value = lightboxImageUrl(props.media.imageUrl, aspectRatio.value, {
-      maxNaturalW: props.media.imageMeta?.dimensions?.width,
-      maxNaturalH: props.media.imageMeta?.dimensions?.height,
-    });
+    highResSrc.value = lightboxImageUrl(
+      props.media.imageUrl,
+      aspectRatio.value,
+      {
+        maxNaturalW: props.media.imageMeta?.dimensions?.width,
+        maxNaturalH: props.media.imageMeta?.dimensions?.height,
+      },
+    );
   }
 });
 
@@ -170,11 +188,10 @@ const picSizes = "sm:100vw md:65vw lg:45vw xl:40vw";
 <style lang="scss" scoped>
 .feed-card {
   width: 100%;
+  margin-inline: auto;
+  // padding: 0 var(--unit-tiny);
+  width: min(100%, calc(var(--aspect, 1) * 90%));
 
-  @include phablet {
-    margin-inline: auto;
-    width: min(100%, calc(var(--aspect, 1) * 80%));
-  }
   @include tablet {
     width: min(100%, calc(var(--aspect, 1) * 65%));
   }
@@ -199,7 +216,9 @@ const picSizes = "sm:100vw md:65vw lg:45vw xl:40vw";
   cursor: zoom-in;
   transition: opacity var(--transition-fast);
 
-  &:hover { opacity: 0.9; }
+  &:hover {
+    opacity: 0.9;
+  }
   &:focus-visible {
     outline: 2px solid var(--foreground-primary);
     outline-offset: 2px;
@@ -251,11 +270,15 @@ const picSizes = "sm:100vw md:65vw lg:45vw xl:40vw";
   color: var(--foreground-primary);
   margin: 0;
 }
-.feed-card__caption { margin: 0; }
+.feed-card__caption {
+  margin: 0;
+}
 .feed-card__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--unit-tinier);
 }
-.feed-card__tag::before { content: "#"; }
+.feed-card__tag::before {
+  content: "#";
+}
 </style>
