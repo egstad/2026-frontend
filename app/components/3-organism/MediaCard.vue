@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { Artifact } from "~/types/sanity";
-import { lightboxImageUrl, sanityImageSrcset, sanityLqipUrl, SRCSET_WIDTHS } from "~/utils/sanityImage";
+import {
+  lightboxImageUrl,
+  sanityImageSrcset,
+  sanityLqipUrl,
+  SRCSET_WIDTHS,
+} from "~/utils/sanityImage";
 
 const props = defineProps<{
   media: Artifact;
@@ -21,9 +26,7 @@ const {
 const cardEl = ref<HTMLElement | null>(null);
 const flipRootEl = ref<HTMLElement | null>(null);
 
-const isActive = computed(
-  () => activeArtifact.value?._id === props.media._id,
-);
+const isActive = computed(() => activeArtifact.value?._id === props.media._id);
 
 // Teleport is enabled when this card is active AND the stage exists.
 const teleportEnabled = computed(
@@ -64,14 +67,10 @@ let preloaded = false;
 function onHover() {
   if (preloaded || isVideo.value) return;
   preloaded = true;
-  const url = lightboxImageUrl(
-    props.media.imageUrl ?? "",
-    aspectRatio.value,
-    {
-      maxNaturalW: props.media.imageMeta?.dimensions?.width,
-      maxNaturalH: props.media.imageMeta?.dimensions?.height,
-    },
-  );
+  const url = lightboxImageUrl(props.media.imageUrl ?? "", aspectRatio.value, {
+    maxNaturalW: props.media.imageMeta?.dimensions?.width,
+    maxNaturalH: props.media.imageMeta?.dimensions?.height,
+  });
   if (!url) return;
   const img = new Image();
   img.src = url;
@@ -84,10 +83,14 @@ const width = computed(() => props.media.imageMeta?.dimensions?.width);
 
 watch(isActive, (isNowActive, wasActive) => {
   if (!isNowActive && wasActive && !isVideo.value && props.media.imageUrl) {
-    highResSrc.value = lightboxImageUrl(props.media.imageUrl, aspectRatio.value, {
-      maxNaturalW: props.media.imageMeta?.dimensions?.width,
-      maxNaturalH: props.media.imageMeta?.dimensions?.height,
-    });
+    highResSrc.value = lightboxImageUrl(
+      props.media.imageUrl,
+      aspectRatio.value,
+      {
+        maxNaturalW: props.media.imageMeta?.dimensions?.width,
+        maxNaturalH: props.media.imageMeta?.dimensions?.height,
+      },
+    );
   }
 });
 const height = computed(() => props.media.imageMeta?.dimensions?.height);
@@ -114,7 +117,9 @@ const vidAspect = computed(
 // Srcset covering the full range of Sanity-servable widths.
 const imageSrcset = computed(() => {
   const url = props.media.imageUrl;
-  return url && !isVideo.value ? sanityImageSrcset(url, SRCSET_WIDTHS) : undefined;
+  return url && !isVideo.value
+    ? sanityImageSrcset(url, SRCSET_WIDTHS)
+    : undefined;
 });
 
 const lqipUrl = computed(() => {
@@ -142,7 +147,11 @@ const picSizes = computed(() => `${Math.round(330 * aspectRatio.value)}px`);
     @keydown.space.prevent="activate"
   >
     <!-- Ghost: holds the grid slot while media is teleported to the lightbox -->
-    <div v-show="teleportEnabled" class="media-card__ghost" aria-hidden="true" />
+    <div
+      v-show="teleportEnabled"
+      class="media-card__ghost"
+      aria-hidden="true"
+    />
 
     <!-- Media: teleported into the lightbox stage when active -->
     <Teleport :disabled="!teleportEnabled" :to="teleportTo">
@@ -177,8 +186,8 @@ const picSizes = computed(() => `${Math.round(330 * aspectRatio.value)}px`);
   display: block;
   position: relative;
   overflow: hidden;
-  height: var(--row-height, 220px);
-  width: calc(var(--row-height, 220px) * var(--aspect, 1));
+  height: var(--row-height, 320px);
+  width: calc(var(--row-height, 320px) * var(--aspect, 1));
   max-width: 100vw;
   flex-shrink: 0;
   margin-right: var(--unit-tinier);
@@ -187,7 +196,9 @@ const picSizes = computed(() => `${Math.round(330 * aspectRatio.value)}px`);
   cursor: zoom-in;
   transition: opacity var(--transition-fast);
 
-  &:hover { opacity: 0.8; }
+  &:hover {
+    opacity: 0.8;
+  }
   &:focus-visible {
     outline: 2px solid var(--foreground-primary);
     outline-offset: 2px;
