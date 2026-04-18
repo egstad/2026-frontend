@@ -26,6 +26,7 @@ const route = useRoute();
 const router = useRouter();
 const artifactStore = useArtifactStore();
 const device = useDeviceStore();
+const nuxtApp = useNuxtApp();
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,11 @@ const { data: media } = useAsyncData(
       "tags": tags[]->{ _id, name, slug }
     }
   `),
-  { lazy: false },
+  {
+    lazy: false,
+    getCachedData: (key) =>
+      nuxtApp.payload.data[key] || nuxtApp.static.data[key],
+  },
 );
 
 // ─── URL-driven filter state (?c= category, ?s= sort, ?v= view) ──────────────
