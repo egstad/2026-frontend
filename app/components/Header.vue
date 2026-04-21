@@ -1,34 +1,26 @@
 <script setup lang="ts">
-import { useDeviceStore } from "~/stores/device";
-import { useArtifactStore } from "~/stores/artifact";
+import { gsap } from "gsap";
 import { useWorkCategories } from "~/composables/useWorkCategories";
-import {
-  categoryFromQuery,
-  sortFromQuery,
-  viewFromQuery,
-} from "~/utils/workQuery";
+import { useWorkFilters } from "~/composables/useWorkFilters";
+import { categoryFromQuery } from "~/utils/workQuery";
+import { useDeviceStore } from "~/stores/device";
 import type { SortOption, ViewOption } from "~/utils/workQuery";
 
 const route = useRoute();
-const router = useRouter();
 const device = useDeviceStore();
-const artifactStore = useArtifactStore();
 const { data: workCategories } = useWorkCategories();
+const { activeSort, activeView, setSort, setView } = useWorkFilters();
 
-// ─── Bar visibility ───────────────────────────────────────────────────────────
-// Show once the user has scrolled past the "near top" zone.
-// Hide again after scrolling down 20px from wherever the bar last appeared.
+// ─── Scroll visibility ────────────────────────────────────────────────────────
 
 const scrollY = ref(0);
 const hideThreshold = ref(0);
-let peakScrollY = 0; // highest Y reached during the current downward run
+let peakScrollY = 0;
 
-// Eligible to show: device has scrolled past the near-top zone.
 const baseVisible = computed(
   () => device.scrollAtTop === false && device.scrollNearTop === false,
 );
 
-// When eligibility is first met, anchor the threshold to the current position.
 watch(baseVisible, (val) => {
   if (val) {
     hideThreshold.value = scrollY.value;
@@ -43,18 +35,14 @@ const isVisible = computed(
 function onScroll() {
   const y = window.scrollY;
   const prev = scrollY.value;
-
   if (y >= prev) {
-    // Scrolling down — track the peak of this downward run.
     if (y > peakScrollY) peakScrollY = y;
   } else {
-    // Scrolling up — only reveal after 20px of upward travel from the peak.
     if (peakScrollY - y >= 10) {
       hideThreshold.value = y;
-      peakScrollY = y; // reset so the next downward run starts fresh
+      peakScrollY = y;
     }
   }
-
   scrollY.value = y;
 }
 
@@ -62,10 +50,7 @@ onMounted(() => {
   scrollY.value = window.scrollY;
   window.addEventListener("scroll", onScroll, { passive: true });
 });
-
-onUnmounted(() => {
-  window.removeEventListener("scroll", onScroll);
-});
+onUnmounted(() => window.removeEventListener("scroll", onScroll));
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
@@ -75,51 +60,25 @@ const rootEl = ref<HTMLElement | null>(null);
 const togglePanel = () => (panelOpen.value = !panelOpen.value);
 const closePanel = () => (panelOpen.value = false);
 
-// Close on route change
 watch(() => route.path, closePanel);
 
-// Close on outside click
 function onDocClick(e: MouseEvent) {
   if (rootEl.value && !rootEl.value.contains(e.target as Node)) closePanel();
 }
-
 onMounted(() => document.addEventListener("click", onDocClick));
 onUnmounted(() => document.removeEventListener("click", onDocClick));
 
-// ─── Route helpers ────────────────────────────────────────────────────────────
+// ─── Route ────────────────────────────────────────────────────────────────────
 
 const routeName = computed(() => route.name?.toString().split("___")[0] ?? "");
 const isWorkRoute = computed(
   () => routeName.value === "work" || routeName.value === "work-index",
 );
-const isAboutRoute = computed(() => routeName.value === "about");
 
-const pages = [
-  { label: "Work", to: "/work" },
-  { label: "About", to: "/about" },
-  { label: "Logs", to: "/logs" },
-  { label: "Contact", to: "/contact" },
-];
-
-const parentPage = computed(
-  () =>
-    pages.find((p) => routeName.value.startsWith(p.label.toLowerCase())) ??
-    null,
-);
-const parentLabel = computed(() => parentPage.value?.label ?? "");
-const parentTo = computed(() => parentPage.value?.to ?? "/");
-
-// ─── Work filters ─────────────────────────────────────────────────────────────
+// ─── Work ─────────────────────────────────────────────────────────────────────
 
 const activeCategory = computed(() => categoryFromQuery(route.query.c));
-const activeSort = computed(() => sortFromQuery(route.query.s));
-const activeView = computed(() => viewFromQuery(route.query.v));
-
-const activeCategoryName = computed(
-  () =>
-    workCategories.value?.find((c) => c.slug?.current === activeCategory.value)
-      ?.name ?? null,
-);
+const workAllSelected = computed(() => activeCategory.value === undefined);
 
 const workQueryBase = computed(() => {
   const q: Record<string, string> = {};
@@ -128,34 +87,19 @@ const workQueryBase = computed(() => {
   return q;
 });
 
-function buildWorkQuery(patch: Record<string, string | undefined>) {
-  const q: Record<string, string> = {};
-  for (const key of ["c", "s", "v"] as const) {
-    const val = Object.hasOwn(patch, key)
-      ? patch[key]
-      : (route.query[key] as string | undefined);
-    if (val) q[key] = val;
-  }
-  return q;
-}
+const sortOptions: { value: SortOption; label: string }[] = [
+  { value: "random", label: "Random" },
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+];
 
-function setSort(opt: SortOption) {
-  if (opt === "random" && activeSort.value === "random")
-    artifactStore.reshuffle();
-  router.push({
-    query: buildWorkQuery({ s: opt === "random" ? undefined : opt }),
-  });
-  closePanel();
-}
+const viewOptions: { value: ViewOption; label: string }[] = [
+  { value: "inline", label: "Grid" },
+  { value: "feed", label: "Feed" },
+  { value: "text", label: "Text" },
+];
 
-function setView(opt: ViewOption) {
-  router.push({
-    query: buildWorkQuery({ v: opt === "inline" ? undefined : opt }),
-  });
-  closePanel();
-}
-
-// ─── About: active section ────────────────────────────────────────────────────
+// ─── About ────────────────────────────────────────────────────────────────────
 
 const aboutSections = [
   { label: "Intro", id: "intro" },
@@ -167,16 +111,14 @@ const aboutSections = [
   { label: "Footprint", id: "footprint" },
   { label: "Colophon", id: "colophon" },
 ];
+
 const activeSection = ref("");
-const activeSectionLabel = computed(
-  () => aboutSections.find((s) => s.id === activeSection.value)?.label ?? "",
-);
 
 let sectionObserver: IntersectionObserver | null = null;
 
 function setupSectionObserver() {
   sectionObserver?.disconnect();
-  if (!isAboutRoute.value) return;
+  if (routeName.value !== "about") return;
   sectionObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((e) => {
@@ -198,27 +140,60 @@ watch(
 onMounted(setupSectionObserver);
 onUnmounted(() => sectionObserver?.disconnect());
 
-// ─── Breadcrumb sub-label ─────────────────────────────────────────────────────
+// ─── Nav data ─────────────────────────────────────────────────────────────────
+
+const pages = [
+  { label: "Work", to: "/work" },
+  { label: "About", to: "/about" },
+  { label: "Logs", to: "/logs" },
+  { label: "Contact", to: "/contact" },
+];
+
+const contactLinks = [
+  { label: "Email", href: "mailto:hello@egstad.com" },
+  { label: "Instagram", href: "https://instagram.com/egstad" },
+  { label: "GitHub", href: "https://github.com/egstad" },
+  { label: "Are.na", href: "https://are.na/jordan-egstad" },
+  { label: "LinkedIn", href: "https://linkedin.com/in/egstad" },
+];
+
+const logsFilters = ["All", "Design", "Code", "Writing"];
+
+// ─── Breadcrumb ───────────────────────────────────────────────────────────────
+
+const activeCategoryName = computed(
+  () =>
+    workCategories.value?.find((c) => c.slug?.current === activeCategory.value)
+      ?.name ?? null,
+);
+
+const activeSectionLabel = computed(
+  () => aboutSections.find((s) => s.id === activeSection.value)?.label ?? "",
+);
+
+const parentPage = computed(
+  () =>
+    pages.find((p) => routeName.value.startsWith(p.label.toLowerCase())) ??
+    null,
+);
+const parentLabel = computed(() => parentPage.value?.label ?? "");
+const parentTo = computed(() => parentPage.value?.to ?? "/");
 
 const subLabel = computed(() => {
   if (isWorkRoute.value) return activeCategoryName.value ?? "All";
-  if (isAboutRoute.value) return activeSectionLabel.value;
+  if (routeName.value === "about") return activeSectionLabel.value;
   return null;
 });
 
-// ─── Sort/view label helpers ──────────────────────────────────────────────────
+// ─── Panel animations ─────────────────────────────────────────────────────────
 
-const sortOptions: { value: SortOption; label: string }[] = [
-  { value: "random", label: "Random" },
-  { value: "newest", label: "Newest" },
-  { value: "oldest", label: "Oldest" },
-];
+function onPanelEnter(el: Element, done: () => void) {
+  gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", onComplete: done });
+}
 
-const viewOptions: { value: ViewOption; label: string }[] = [
-  { value: "inline", label: "Inline" },
-  { value: "feed", label: "Feed" },
-  { value: "text", label: "Text" },
-];
+function onPanelLeave(el: Element, done: () => void) {
+  gsap.to(el, { opacity: 0, duration: 0.2, ease: "power2.in", onComplete: done });
+}
 </script>
 
 <template>
@@ -227,154 +202,225 @@ const viewOptions: { value: ViewOption; label: string }[] = [
     class="sticky-header"
     :class="{ 'is-visible': isVisible, 'is-open': panelOpen }"
   >
-    <!-- Thin bar -->
+    <!-- ─── Bar ──────────────────────────────────────────────────────────── -->
     <div class="sticky-header__bar">
-      <!-- Breadcrumb -->
-      <nav class="sticky-header__breadcrumb" aria-label="Current location">
-        <NuxtLink :to="parentTo" class="sticky-header__crumb">
-          <Text size="caption-1">{{ parentLabel }}</Text>
-        </NuxtLink>
-        <span v-if="subLabel" class="sticky-header__sep" aria-hidden="true">/</span>
-        <Transition name="sub" mode="out-in">
-          <span :key="subLabel ?? ''" class="sticky-header__sub">
+      <div class="sticky-header__crumb-wrap">
+        <nav
+          class="sticky-header__breadcrumb"
+          :class="{ 'is-hidden': panelOpen }"
+          aria-label="Current location"
+        >
+          <NuxtLink :to="parentTo" class="sticky-header__crumb">
+            <Text size="caption-1">{{ parentLabel }}</Text>
+          </NuxtLink>
+          <span v-if="subLabel" class="sticky-header__sep" aria-hidden="true">/</span>
+          <span class="sticky-header__sub">
             <Text size="caption-1">{{ subLabel }}</Text>
           </span>
-        </Transition>
-      </nav>
-
-      <!-- Nav toggle -->
-      <button
-        class="sticky-header__toggle"
-        :aria-expanded="panelOpen"
-        aria-label="Toggle navigation"
-        @click.stop="togglePanel"
-      >
-        <span class="sticky-header__dots" aria-hidden="true">
-          <span v-for="i in 9" :key="i" class="sticky-header__dot" />
+        </nav>
+        <span
+          class="sticky-header__menu-label"
+          :class="{ 'is-hidden': !panelOpen }"
+        >
+          <Text size="caption-1" color="dimmer">Menu</Text>
         </span>
-      </button>
+      </div>
+
+      <div class="sticky-header__bar-right">
+        <div
+          v-if="isWorkRoute"
+          class="sticky-header__bar-filters"
+          :class="{ 'is-hidden': panelOpen }"
+        >
+          <BaseSelect
+            variant="text"
+            dropdown-align="left"
+            label="Sort"
+            :model-value="activeSort"
+            :options="sortOptions"
+            style="--select-value-min-width: 4.5em"
+            @update:model-value="(v) => setSort(v as SortOption)"
+          />
+          <BaseSelect
+            variant="text"
+            dropdown-align="right"
+            label="View"
+            :model-value="activeView"
+            :options="viewOptions"
+            style="--select-value-min-width: 2.5em"
+            @update:model-value="(v) => setView(v as ViewOption)"
+          />
+        </div>
+
+        <button
+          class="sticky-header__toggle"
+          :aria-expanded="panelOpen"
+          aria-label="Toggle navigation"
+          @click.stop="togglePanel"
+        >
+          <span class="sticky-header__dots" aria-hidden="true">
+            <span v-for="i in 9" :key="i" class="sticky-header__dot" />
+          </span>
+        </button>
+      </div>
     </div>
 
-    <!-- Expanded panel -->
-    <Transition name="panel">
+    <!-- ─── Panel ────────────────────────────────────────────────────────── -->
+    <Transition :css="false" @enter="onPanelEnter" @leave="onPanelLeave">
       <div v-if="panelOpen" class="sticky-header__panel">
-        <!-- Pages -->
-        <div class="sticky-header__row">
-          <span class="sticky-header__row-label">Page</span>
-          <div class="sticky-header__links">
-            <NuxtLink
-              v-for="page in pages"
-              :key="page.to"
-              :to="page.to"
-              class="sticky-header__link"
-              @click="closePanel"
-            >
-              <Text size="caption-1">{{ page.label }}</Text>
-            </NuxtLink>
-          </div>
-        </div>
-
-        <!-- Work: categories + sort + view -->
-        <template v-if="isWorkRoute">
-          <div class="sticky-header__row">
-            <span class="sticky-header__row-label">Category</span>
-            <div class="sticky-header__links">
-              <NuxtLink
-                :to="{ path: '/work', query: workQueryBase }"
-                custom
-                v-slot="{ href, navigate }"
-              >
-                <a
-                  :href="href"
+        <Grid class="sticky-header__grid">
+          <!-- Col 1: primary pages -->
+          <Column
+            span-mobile="6"
+            span-tablet="3"
+            span-laptop="3"
+            span-desktop="2"
+          >
+            <ul class="sticky-header__col">
+              <li v-for="page in pages" :key="page.to">
+                <NuxtLink
+                  :to="page.to"
                   class="sticky-header__link"
-                  :class="{
-                    'is-active': !activeCategory,
-                    'is-inactive': !!activeCategory,
-                  }"
-                  @click="
-                    navigate();
-                    closePanel();
-                  "
+                  @click="closePanel"
                 >
-                  <Text size="caption-1">All</Text>
-                </a>
-              </NuxtLink>
-              <NuxtLink
-                v-for="cat in workCategories"
-                :key="cat._id"
-                :to="{
-                  path: '/work',
-                  query: { ...workQueryBase, c: cat.slug.current },
-                }"
-                custom
-                v-slot="{ href, navigate }"
-              >
+                  <Text>{{ page.label }}</Text>
+                </NuxtLink>
+              </li>
+            </ul>
+          </Column>
+
+          <!-- Col 2: context subnav -->
+          <Column
+            span-mobile="6"
+            span-tablet="3"
+            span-laptop="3"
+            span-desktop="2"
+          >
+            <!-- About: scroll-to sections -->
+            <ul v-if="routeName === 'about'" class="sticky-header__col">
+              <li v-for="section in aboutSections" :key="section.id">
                 <a
-                  :href="href"
+                  :href="`#${section.id}`"
                   class="sticky-header__link"
-                  :class="{
-                    'is-active': activeCategory === cat.slug.current,
-                    'is-inactive':
-                      !!activeCategory && activeCategory !== cat.slug.current,
-                  }"
-                  @click="
-                    navigate();
-                    closePanel();
-                  "
+                  :class="{ 'is-active': activeSection === section.id }"
+                  @click="closePanel"
                 >
-                  <Text size="caption-1">{{ cat.name }}</Text>
+                  <Text>{{ section.label }}</Text>
                 </a>
-              </NuxtLink>
-            </div>
-          </div>
+              </li>
+            </ul>
 
-          <div class="sticky-header__row">
-            <span class="sticky-header__row-label">Sort</span>
-            <div class="sticky-header__links">
-              <button
-                v-for="opt in sortOptions"
-                :key="opt.value"
-                class="sticky-header__link"
-                :class="{ 'is-active': activeSort === opt.value }"
-                @click="setSort(opt.value)"
-              >
-                <Text size="caption-1">{{ opt.label }}</Text>
-              </button>
-            </div>
-          </div>
+            <!-- Work: categories -->
+            <ul v-else-if="isWorkRoute" class="sticky-header__col">
+              <li>
+                <NuxtLink
+                  :to="{ path: '/work', query: workQueryBase }"
+                  custom
+                  v-slot="{ href, navigate }"
+                >
+                  <a
+                    :href="href"
+                    class="sticky-header__link"
+                    :class="{
+                      'is-active': workAllSelected,
+                      'is-inactive': !workAllSelected,
+                    }"
+                    @click="
+                      navigate();
+                      closePanel();
+                    "
+                  >
+                    <Text>All</Text>
+                  </a>
+                </NuxtLink>
+              </li>
+              <li v-for="cat in workCategories" :key="cat._id">
+                <NuxtLink
+                  :to="{
+                    path: '/work',
+                    query: { ...workQueryBase, c: cat.slug.current },
+                  }"
+                  custom
+                  v-slot="{ href, navigate }"
+                >
+                  <a
+                    :href="href"
+                    class="sticky-header__link"
+                    :class="{
+                      'is-active': activeCategory === cat.slug.current,
+                      'is-inactive':
+                        !!activeCategory && activeCategory !== cat.slug.current,
+                    }"
+                    @click="
+                      navigate();
+                      closePanel();
+                    "
+                  >
+                    <Text>{{ cat.name }}</Text>
+                  </a>
+                </NuxtLink>
+              </li>
+            </ul>
 
-          <div class="sticky-header__row">
-            <span class="sticky-header__row-label">View</span>
-            <div class="sticky-header__links">
-              <button
-                v-for="opt in viewOptions"
-                :key="opt.value"
-                class="sticky-header__link"
-                :class="{ 'is-active': activeView === opt.value }"
-                @click="setView(opt.value)"
-              >
-                <Text size="caption-1">{{ opt.label }}</Text>
-              </button>
-            </div>
-          </div>
-        </template>
-
-        <!-- About: sections -->
-        <div v-else-if="isAboutRoute" class="sticky-header__row">
-          <span class="sticky-header__row-label">Section</span>
-          <div class="sticky-header__links">
-            <a
-              v-for="section in aboutSections"
-              :key="section.id"
-              :href="`#${section.id}`"
-              class="sticky-header__link"
-              :class="{ 'is-active': activeSection === section.id }"
-              @click="closePanel"
+            <!-- Logs: filters -->
+            <ul
+              v-else-if="routeName === 'logs' || routeName === 'logs-index'"
+              class="sticky-header__col"
             >
-              <Text size="caption-1">{{ section.label }}</Text>
-            </a>
-          </div>
-        </div>
+              <li v-for="filter in logsFilters" :key="filter">
+                <button class="sticky-header__link" disabled>
+                  <Text size="caption-1">{{ filter }}</Text>
+                </button>
+              </li>
+            </ul>
+
+            <!-- Contact: external links -->
+            <ul v-else-if="routeName === 'contact'" class="sticky-header__col">
+              <li v-for="link in contactLinks" :key="link.label">
+                <a
+                  :href="link.href"
+                  class="sticky-header__link"
+                  target="_blank"
+                  rel="noopener"
+                  @click="closePanel"
+                >
+                  <Text size="caption-1">{{ link.label }}</Text>
+                </a>
+              </li>
+            </ul>
+          </Column>
+
+          <!-- Col 3: work sort + view -->
+          <Column
+            v-if="isWorkRoute"
+            span-mobile="12"
+            span-tablet="6"
+            span-laptop="6"
+            span-desktop="8"
+            class="work-filters-col"
+          >
+            <div class="work-filters">
+              <BaseSelect
+                variant="text"
+                dropdown-align="left"
+                label="Sort"
+                :model-value="activeSort"
+                :options="sortOptions"
+                style="--select-value-min-width: 4.5em"
+                @update:model-value="(v) => setSort(v as SortOption)"
+              />
+              <BaseSelect
+                variant="text"
+                dropdown-align="right"
+                label="View"
+                :model-value="activeView"
+                :options="viewOptions"
+                style="--select-value-min-width: 2.5em"
+                @update:model-value="(v) => setView(v as ViewOption)"
+              />
+            </div>
+          </Column>
+        </Grid>
       </div>
     </Transition>
   </div>
@@ -406,7 +452,6 @@ const viewOptions: { value: ViewOption; label: string }[] = [
   align-items: center;
   justify-content: space-between;
   padding: var(--unit-tiny) var(--grid-margin);
-  // height: var(--unit-small);
   background: var(--background-primary);
   border-bottom: 1px solid var(--border-primary);
 
@@ -417,12 +462,33 @@ const viewOptions: { value: ViewOption; label: string }[] = [
 
 // ── Breadcrumb ────────────────────────────────────────────────────────────────
 
-.sticky-header__breadcrumb {
-  display: flex;
-  align-items: baseline;
-  gap: var(--unit-tinier);
+.sticky-header__crumb-wrap {
+  position: relative;
+  flex: 1;
   min-width: 0;
   overflow: hidden;
+}
+
+.sticky-header__breadcrumb,
+.sticky-header__menu-label {
+  display: flex;
+  align-items: baseline;
+  transition: opacity var(--transition);
+
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.sticky-header__breadcrumb {
+  gap: var(--unit-tinier);
+}
+
+.sticky-header__menu-label {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .sticky-header__crumb {
@@ -456,6 +522,30 @@ const viewOptions: { value: ViewOption; label: string }[] = [
   color: var(--foreground-quaternary);
   flex-shrink: 0;
   font-size: var(--t-caption-1-size);
+}
+
+// ── Bar right ─────────────────────────────────────────────────────────────────
+
+.sticky-header__bar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--unit-small);
+  flex-shrink: 0;
+}
+
+.sticky-header__bar-filters {
+  display: none;
+  gap: var(--unit-small);
+  transition: opacity var(--transition);
+
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @include tablet {
+    display: flex;
+  }
 }
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
@@ -505,37 +595,25 @@ const viewOptions: { value: ViewOption; label: string }[] = [
 .sticky-header__panel {
   background: var(--background-primary);
   border-bottom: 1px solid var(--border-primary);
+}
+
+.sticky-header__grid {
+  padding-top: var(--unit-tiny);
+  padding-bottom: var(--unit-small);
+}
+
+.sticky-header__col {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-}
-
-.sticky-header__row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--unit-small);
-  padding: var(--unit-tiny) var(--grid-margin);
-  border-top: 1px solid var(--border-primary);
-}
-
-.sticky-header__row-label {
-  font-size: var(--t-caption-1-size);
-  line-height: var(--t-caption-1-leading);
-  color: var(--foreground-quaternary);
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 4.5em;
-}
-
-.sticky-header__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--unit-tinier) var(--unit-small);
 }
 
 .sticky-header__link {
   font-size: var(--t-caption-1-size);
   line-height: var(--t-caption-1-leading);
-  color: var(--foreground-tertiary);
+  color: var(--foreground-quaternary);
   text-decoration: none;
   background: none;
   border: none;
@@ -545,44 +623,53 @@ const viewOptions: { value: ViewOption; label: string }[] = [
   transition: color var(--transition-fast);
 
   &:hover {
-    color: var(--foreground-secondary);
+    color: var(--foreground-primary);
   }
 
   &.is-active,
   &.router-link-active {
     color: var(--foreground-primary);
+
+    :deep([class^="t-"]) {
+      color: inherit;
+    }
   }
 
   &.is-inactive {
     color: var(--foreground-quaternary);
+
+    :deep([class^="t-"]) {
+      color: inherit;
+    }
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+// ── Work filters ──────────────────────────────────────────────────────────────
+
+.work-filters-col {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.work-filters {
+  margin-top: var(--unit-small);
+  display: grid;
+  gap: var(--grid-gap);
+  width: 100%;
+  grid-template-columns: 1fr 1fr;
+
+  @include tablet {
+    width: auto;
+    margin-left: auto;
+    margin-top: 0;
   }
 }
 
 // ── Transitions ───────────────────────────────────────────────────────────────
 
-.panel-enter-active,
-.panel-leave-active {
-  transition:
-    opacity var(--transition),
-    transform var(--transition);
-}
-
-.panel-enter-from,
-.panel-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-.sub-enter-active,
-.sub-leave-active {
-  transition:
-    opacity var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.sub-enter-from,
-.sub-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
 </style>
