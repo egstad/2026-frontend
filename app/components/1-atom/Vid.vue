@@ -20,6 +20,10 @@ interface Props {
   /** IntersectionObserver `rootMargin` for early fetch (lazy only). Only `px` or `%` (no `vh`/`vw` — not supported by the API). */
   prefetchRootMargin?: string;
   defaultSubtitleLang?: string; // e.g. "en" — subtitles off by default
+  /** When true, the visibility observer never pauses the video. Use in
+   *  lightbox / overlay contexts where the element may overflow the viewport
+   *  but should keep playing regardless. */
+  lockPlay?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -170,6 +174,10 @@ const handleCanPlay = () => {
   isLoading.value = false;
   if (videoRef.value) isMuted.value = videoRef.value.muted;
   emit("loaded");
+};
+
+const handleVolumeChange = () => {
+  if (videoRef.value) isMuted.value = videoRef.value.muted;
 };
 
 const handleError = () => {
@@ -348,7 +356,9 @@ const handleVisibilityIntersect = (entries: IntersectionObserverEntry[]) => {
       }
       wasPlayingBeforeLeave.value = false;
     } else {
-      if (videoRef.value && !videoRef.value.paused) {
+      // Skip pause when lockPlay is set — the element may legitimately
+      // overflow the viewport (e.g. in a lightbox) without needing to stop.
+      if (!props.lockPlay && videoRef.value && !videoRef.value.paused) {
         wasPlayingBeforeLeave.value = true;
         videoRef.value.pause();
       }
@@ -423,6 +433,7 @@ onUnmounted(() => {
       @loadedmetadata="handleLoadedMetadata"
       @error="handleError"
       @canplay="handleCanPlay"
+      @volumechange="handleVolumeChange"
       @play="handlePlay"
       @pause="handlePause"
       @click="handleVideoClick"

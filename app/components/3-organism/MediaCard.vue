@@ -1,126 +1,214 @@
 <script setup lang="ts">
 import type { Artifact } from "~/types/sanity";
-import { sanityImageUrl } from "~/utils/sanityImage";
+import {
+  lightboxImageUrl,
+  sanityImageSrcset,
+  sanityLqipUrl,
+  SRCSET_WIDTHS,
+} from "~/utils/sanityImage";
 
 const props = defineProps<{
   media: Artifact;
-  rowHeight?: number;
   priority?: boolean;
 }>();
 
-// Check if this is a video
-const isVideo = computed(
-  () => props.media.mediaType === "video" && props.media.muxPlaybackId,
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+
+const lb = useWorkLightbox();
+const {
+  activeArtifact,
+  sharedStageEl,
+  registerFlipRoot,
+  unregisterFlipRootIf,
+  open,
+} = lb;
+
+const cardEl = ref<HTMLElement | null>(null);
+const flipRootEl = ref<HTMLElement | null>(null);
+
+const isActive = computed(() => activeArtifact.value?._id === props.media._id);
+
+// Teleport is enabled when this card is active AND the stage exists.
+const teleportEnabled = computed(
+  () => isActive.value && sharedStageEl.value != null,
 );
 
-// Preload on hover for instant navigation
+// Safe target for Teleport :to (always a valid selector when disabled)
+const teleportTo = computed(() =>
+  sharedStageEl.value ? sharedStageEl.value : "body",
+);
+
+// Register/unregister this card's flip root with the composable so the
+// lightbox knows which element to FLIP.
+watchEffect((onCleanup) => {
+  const el = flipRootEl.value;
+  if (!el || !isActive.value) return;
+  registerFlipRoot(el);
+  onCleanup(() => unregisterFlipRootIf(el));
+});
+
+function activate() {
+  const el = flipRootEl.value;
+  const card = cardEl.value;
+  if (!el || !card) return;
+  open(props.media, {
+    trigger: card,
+    firstRect: el.getBoundingClientRect(),
+  });
+}
+
+// ─── Media helpers ────────────────────────────────────────────────────────────
+
+const isVideo = computed(
+  () => props.media.mediaType === "video" && !!props.media.muxPlaybackId,
+);
+
 let preloaded = false;
 function onHover() {
   if (preloaded || isVideo.value) return;
   preloaded = true;
-
-  // Preload larger image (pick ~1600w for detail view)
-  if (props.media.imageUrl) {
-    const img = new Image();
-    img.src = sanityImageUrl(props.media.imageUrl, { width: 1600 });
-  }
+  const url = lightboxImageUrl(props.media.imageUrl ?? "", aspectRatio.value, {
+    maxNaturalW: props.media.imageMeta?.dimensions?.width,
+    maxNaturalH: props.media.imageMeta?.dimensions?.height,
+  });
+  if (!url) return;
+  const img = new Image();
+  img.src = url;
 }
 
-// Pass the base Sanity URL — Pic detects Sanity CDN URLs and uses
-// NuxtImg's Sanity provider for automatic srcset, format negotiation,
-// and DPR-aware source selection.
 const thumbnailSrc = computed(() => props.media.imageUrl || null);
-
-// Dimensions from metadata
+const highResSrc = ref<string | null>(null);
+const effectiveSrc = computed(() => highResSrc.value || thumbnailSrc.value);
 const width = computed(() => props.media.imageMeta?.dimensions?.width);
+
+watch(isActive, (isNowActive, wasActive) => {
+  if (!isNowActive && wasActive && !isVideo.value && props.media.imageUrl) {
+    highResSrc.value = lightboxImageUrl(
+      props.media.imageUrl,
+      aspectRatio.value,
+      {
+        maxNaturalW: props.media.imageMeta?.dimensions?.width,
+        maxNaturalH: props.media.imageMeta?.dimensions?.height,
+      },
+    );
+  }
+});
 const height = computed(() => props.media.imageMeta?.dimensions?.height);
 
-// Parse Mux aspect ratio string (e.g., "16:9") to number
-function parseMuxAspectRatio(ratio?: string): number | null {
+function parseMuxAspect(ratio?: string): number | null {
   if (!ratio) return null;
-  const parts = ratio.split(":");
-  if (parts.length === 2 && parts[0] && parts[1]) {
-    const w = parseFloat(parts[0]);
-    const h = parseFloat(parts[1]);
-    if (w && h) return w / h;
-  }
-  return null;
+  const [w, h] = ratio.split(":").map(Number);
+  return w && h ? w / h : null;
 }
 
-// Aspect ratio for variable width calculation
 const aspectRatio = computed(() => {
-  // For videos, use Mux aspect ratio
   if (isVideo.value) {
-    const videoAspect = parseMuxAspectRatio(props.media.videoMeta?.aspectRatio);
-    if (videoAspect) return videoAspect;
+    const a = parseMuxAspect(props.media.videoMeta?.aspectRatio);
+    if (a) return a;
   }
-  // For images, use dimensions
-  if (width.value && height.value) {
-    return width.value / height.value;
-  }
-  return 1; // fallback to square
+  if (width.value && height.value) return width.value / height.value;
+  return 1;
 });
 
-/** Passed to Vid only when Mux reports it; otherwise Vid defaults to 16/9 (not square). */
-const vidAspectProp = computed((): number | undefined => {
-  if (!isVideo.value) return undefined;
-  return parseMuxAspectRatio(props.media.videoMeta?.aspectRatio) ?? undefined;
+const vidAspect = computed(
+  () => parseMuxAspect(props.media.videoMeta?.aspectRatio) ?? undefined,
+);
+
+// Srcset covering the full range of Sanity-servable widths.
+const imageSrcset = computed(() => {
+  const url = props.media.imageUrl;
+  return url && !isVideo.value
+    ? sanityImageSrcset(url, SRCSET_WIDTHS)
+    : undefined;
 });
 
-// Sizes hint for NuxtImg — based on actual rendered card width
-const sizesHint = computed(() => {
-  const h = props.rowHeight ?? 330;
-  const w = Math.round(h * aspectRatio.value);
-  return `${w}px`;
+const lqipUrl = computed(() => {
+  const url = props.media.imageUrl;
+  return url && !isVideo.value ? sanityLqipUrl(url) : undefined;
 });
+
+// sizes hint: fixed CSS px width of the card at its default row height.
+// The browser uses this × devicePixelRatio to pick from the srcset.
+const picSizes = computed(() => `${Math.round(330 * aspectRatio.value)}px`);
 </script>
 
 <template>
-  <NuxtLink
-    :to="`/work/${media.slug.current}`"
+  <div
+    ref="cardEl"
     class="media-card"
+    :class="{ 'media-card--active': isActive }"
     :style="{ '--aspect': aspectRatio }"
+    role="button"
+    tabindex="0"
+    :aria-label="`View ${media.title}`"
     @mouseenter="onHover"
+    @click="activate"
+    @keydown.enter.prevent="activate"
+    @keydown.space.prevent="activate"
   >
-    <!-- Video: autoplay muted -->
-    <Vid
-      v-if="isVideo"
-      :playbackId="media.muxPlaybackId"
-      preset="ambient"
-      :aspect-ratio="vidAspectProp"
+    <!-- Ghost: holds the grid slot while media is teleported to the lightbox -->
+    <div
+      v-show="teleportEnabled"
+      class="media-card__ghost"
+      aria-hidden="true"
     />
-    <!-- Image -->
-    <Pic
-      v-else-if="thumbnailSrc"
-      :src="thumbnailSrc"
-      :alt="media.alt || media.title"
-      :width="width"
-      :height="height"
-      :external="true"
-      :sizes="sizesHint"
-      :priority="priority"
-      :loading="priority ? 'eager' : 'lazy'"
-    />
-    <!-- Fallback -->
-    <div v-else class="placeholder" />
-  </NuxtLink>
+
+    <!-- Media: teleported into the lightbox stage when active -->
+    <Teleport :disabled="!teleportEnabled" :to="teleportTo">
+      <div ref="flipRootEl" class="lb-flip-root">
+        <Vid
+          v-if="isVideo"
+          :playbackId="media.muxPlaybackId"
+          preset="ambient"
+          :aspect-ratio="vidAspect"
+          :lock-play="isActive"
+        />
+        <Pic
+          v-else-if="effectiveSrc"
+          :src="effectiveSrc"
+          :alt="media.alt || media.title"
+          :width="width"
+          :height="height"
+          :srcset="imageSrcset"
+          :sizes="picSizes"
+          :placeholder="lqipUrl"
+          :priority="priority"
+          :loading="priority ? 'eager' : 'lazy'"
+        />
+        <div v-else class="media-card__placeholder" />
+      </div>
+    </Teleport>
+  </div>
 </template>
 
 <style lang="scss" scoped>
 .media-card {
   display: block;
+  position: relative;
   overflow: hidden;
-  height: var(--row-height, 220px);
-  width: calc(var(--row-height, 220px) * var(--aspect, 1));
+  height: var(--row-height, 320px);
+  width: calc(var(--row-height, 320px) * var(--aspect, 1));
   max-width: 100vw;
   flex-shrink: 0;
-  // margin: 2px;
   margin-right: var(--unit-tinier);
   margin-bottom: var(--unit-tinier);
+  border-radius: var(--radii-tiny);
+  cursor: zoom-in;
   transition: opacity var(--transition-fast);
 
   &:hover {
     opacity: 0.8;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foreground-primary);
+    outline-offset: 2px;
+  }
+
+  // ── Styles applied when media lives in this card (not teleported) ─────────
+  :deep(.lb-flip-root) {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   :deep(.pic),
@@ -139,9 +227,22 @@ const sizesHint = computed(() => {
   }
 }
 
-.placeholder {
+// Ghost keeps the card slot visible while media is in the lightbox
+.media-card__ghost {
+  position: absolute;
+  inset: 0;
+  background: var(--background-secondary);
+  border-radius: inherit;
+}
+
+.media-card--active {
+  cursor: default;
+  pointer-events: none;
+}
+
+.media-card__placeholder {
   width: 100%;
   height: 100%;
-  background-color: var(--background-secondary);
+  background: var(--background-secondary);
 }
 </style>

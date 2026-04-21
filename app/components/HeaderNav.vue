@@ -88,12 +88,47 @@
             >
           </div>
         </div>
+
+        <!-- Sort row (work only) -->
+        <div v-if="isWorkRoute" class="nav__row">
+          <span class="nav__row-label">Sort:</span>
+          <div class="nav__links">
+            <button
+              v-for="opt in sortOptions"
+              :key="opt.value"
+              class="nav__link"
+              :class="{ 'is-active': activeSort === opt.value }"
+              @click="setSort(opt.value as SortOption); close()"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- View row (work only) -->
+        <div v-if="isWorkRoute" class="nav__row">
+          <span class="nav__row-label">View:</span>
+          <div class="nav__links">
+            <button
+              v-for="opt in viewOptions"
+              :key="opt.value"
+              class="nav__link"
+              :class="{ 'is-active': activeView === opt.value }"
+              @click="setView(opt.value as ViewOption); close()"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
       </div>
     </Transition>
   </nav>
 </template>
 
 <script setup lang="ts">
+import { useWorkFilters } from "~/composables/useWorkFilters";
+import type { SortOption, ViewOption } from "~/utils/workQuery";
+
 interface Section {
   label: string;
   id: string;
@@ -108,6 +143,7 @@ const isOpen = ref(false);
 const navEl = ref<HTMLElement | null>(null);
 const route = useRoute();
 const activeSection = ref("");
+const { activeSort, activeView, setSort, setView } = useWorkFilters();
 
 const pages: Page[] = [
   { label: "Work", to: "/work" },
@@ -128,10 +164,27 @@ const sectionsByRoute: Record<string, Section[]> = {
   ],
 };
 
+const routeName = computed(() => route.name?.toString().split("___")[0] ?? "");
+
 const currentSections = computed<Section[]>(() => {
-  const name = route.name?.toString().split("___")[0] ?? "";
-  return sectionsByRoute[name] ?? [];
+  return sectionsByRoute[routeName.value] ?? [];
 });
+
+const isWorkRoute = computed(
+  () => routeName.value === "work" || routeName.value === "work-index"
+);
+
+const sortOptions = [
+  { label: "Random", value: "random" },
+  { label: "Newest", value: "newest" },
+  { label: "Oldest", value: "oldest" },
+];
+
+const viewOptions = [
+  { label: "Grid", value: "inline" },
+  { label: "Feed", value: "feed" },
+  { label: "Text", value: "text" },
+];
 
 const toggle = () => {
   isOpen.value = !isOpen.value;

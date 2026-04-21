@@ -1,24 +1,49 @@
 <template>
   <article class="feed-card" :style="{ '--aspect': aspectRatio }">
-    <NuxtLink :to="`/work/${media.slug.current}`" class="feed-card__media">
-      <Vid
-        v-if="isVideo"
-        :playbackId="media.muxPlaybackId"
-        preset="ambient"
-        :aspect-ratio="vidAspectProp"
+    <!-- Media area: same Teleport pattern as MediaCard -->
+    <div
+      ref="mediaEl"
+      class="feed-card__media"
+      :class="{ 'feed-card__media--active': isActive }"
+      role="button"
+      tabindex="0"
+      :aria-label="`View ${media.title}`"
+      @mouseenter="onHover"
+      @click="activate"
+      @keydown.enter.prevent="activate"
+      @keydown.space.prevent="activate"
+    >
+      <div
+        v-show="teleportEnabled"
+        class="feed-card__ghost"
+        aria-hidden="true"
       />
-      <Pic
-        v-else-if="media.imageUrl"
-        :src="media.imageUrl"
-        :alt="media.alt || media.title"
-        :width="width"
-        :height="height"
-        :external="true"
-        :priority="priority"
-        :loading="priority ? 'eager' : 'lazy'"
-      />
-      <div v-else class="feed-card__placeholder" />
-    </NuxtLink>
+
+      <Teleport :disabled="!teleportEnabled" :to="teleportTo">
+        <div ref="flipRootEl" class="lb-flip-root">
+          <Vid
+            v-if="isVideo"
+            :playbackId="media.muxPlaybackId"
+            preset="ambient"
+            :aspect-ratio="vidAspect"
+            :lock-play="isActive"
+          />
+          <Pic
+            v-else-if="effectiveSrc"
+            :src="effectiveSrc"
+            :alt="media.alt || media.title"
+            :width="width"
+            :height="height"
+            :srcset="imageSrcset"
+            :sizes="picSizes"
+            :placeholder="lqipUrl"
+            :priority="priority"
+            :loading="priority ? 'eager' : 'lazy'"
+          />
+          <div v-else class="feed-card__placeholder" />
+        </div>
+      </Teleport>
+    </div>
 
     <footer class="feed-card__meta">
       <Text size="caption-2" is="h2" class="feed-card__title">
@@ -40,9 +65,8 @@
           color="dimmer"
           is="span"
           class="feed-card__tag"
+          >{{ cat.name }}</Text
         >
-          {{ cat.name }}
-        </Text>
       </div>
     </footer>
   </article>
@@ -50,68 +74,142 @@
 
 <script setup lang="ts">
 import type { Artifact } from "~/types/sanity";
+import { lightboxImageUrl, sanityImageSrcset, sanityLqipUrl, SRCSET_WIDTHS } from "~/utils/sanityImage";
 
 const props = defineProps<{
   media: Artifact;
   priority?: boolean;
 }>();
 
-const isVideo = computed(
-  () => props.media.mediaType === "video" && props.media.muxPlaybackId,
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+
+const lb = useWorkLightbox();
+const {
+  activeArtifact,
+  sharedStageEl,
+  registerFlipRoot,
+  unregisterFlipRootIf,
+  open,
+} = lb;
+
+const mediaEl = ref<HTMLElement | null>(null);
+const flipRootEl = ref<HTMLElement | null>(null);
+
+const isActive = computed(() => activeArtifact.value?._id === props.media._id);
+const teleportEnabled = computed(
+  () => isActive.value && sharedStageEl.value != null,
+);
+const teleportTo = computed(() =>
+  sharedStageEl.value ? sharedStageEl.value : "body",
 );
 
+watchEffect((onCleanup) => {
+  const el = flipRootEl.value;
+  if (!el || !isActive.value) return;
+  registerFlipRoot(el);
+  onCleanup(() => unregisterFlipRootIf(el));
+});
+
+let preloaded = false;
+function onHover() {
+  if (preloaded || isVideo.value) return;
+  preloaded = true;
+  const url = lightboxImageUrl(props.media.imageUrl ?? "", aspectRatio.value, {
+    maxNaturalW: props.media.imageMeta?.dimensions?.width,
+    maxNaturalH: props.media.imageMeta?.dimensions?.height,
+  });
+  if (!url) return;
+  const img = new Image();
+  img.src = url;
+}
+
+function activate() {
+  const el = flipRootEl.value;
+  const root = mediaEl.value;
+  if (!el || !root) return;
+  open(props.media, {
+    trigger: root,
+    firstRect: el.getBoundingClientRect(),
+  });
+}
+
+// ─── Media helpers ────────────────────────────────────────────────────────────
+
+const isVideo = computed(
+  () => props.media.mediaType === "video" && !!props.media.muxPlaybackId,
+);
 const width = computed(() => props.media.imageMeta?.dimensions?.width);
 const height = computed(() => props.media.imageMeta?.dimensions?.height);
 
+const highResSrc = ref<string | null>(null);
+const effectiveSrc = computed(
+  () => highResSrc.value || props.media.imageUrl || null,
+);
+
+watch(isActive, (isNowActive, wasActive) => {
+  if (!isNowActive && wasActive && !isVideo.value && props.media.imageUrl) {
+    highResSrc.value = lightboxImageUrl(
+      props.media.imageUrl,
+      aspectRatio.value,
+      {
+        maxNaturalW: props.media.imageMeta?.dimensions?.width,
+        maxNaturalH: props.media.imageMeta?.dimensions?.height,
+      },
+    );
+  }
+});
+
+function parseMuxAspect(ratio?: string): number | null {
+  if (!ratio) return null;
+  const [w, h] = ratio.split(":").map(Number);
+  return w && h ? w / h : null;
+}
+
 const aspectRatio = computed(() => {
-  if (isVideo.value && props.media.videoMeta?.aspectRatio) {
-    const [wStr, hStr] = props.media.videoMeta.aspectRatio.split(":");
-    const w = parseFloat(wStr ?? "1");
-    const h = parseFloat(hStr ?? "1");
-    if (w && h) return w / h;
+  if (isVideo.value) {
+    const a = parseMuxAspect(props.media.videoMeta?.aspectRatio);
+    if (a) return a;
   }
   if (width.value && height.value) return width.value / height.value;
   return 1;
 });
 
-/** Mux aspect for Vid only when known (card `--aspect` still uses image ratio / 1). */
-const vidAspectProp = computed((): number | undefined => {
-  if (!isVideo.value || !props.media.videoMeta?.aspectRatio) return undefined;
-  const [wStr, hStr] = props.media.videoMeta.aspectRatio.split(":");
-  const w = parseFloat(wStr ?? "");
-  const h = parseFloat(hStr ?? "");
-  if (w && h) return w / h;
-  return undefined;
+const vidAspect = computed(
+  () => parseMuxAspect(props.media.videoMeta?.aspectRatio) ?? undefined,
+);
+
+// Srcset covering the full range of Sanity-servable widths.
+// The browser picks the right entry for the rendered CSS width × devicePixelRatio
+// without any framework involvement.
+const imageSrcset = computed(() => {
+  const url = props.media.imageUrl;
+  return url && !isVideo.value ? sanityImageSrcset(url, SRCSET_WIDTHS) : undefined;
 });
+
+// Tiny placeholder URL — loaded immediately, gives the blur-up effect while
+// the correctly-sized srcset entry loads.
+const lqipUrl = computed(() => {
+  const url = props.media.imageUrl;
+  return url && !isVideo.value ? sanityLqipUrl(url) : undefined;
+});
+
+// Standard CSS sizes — matches the responsive widths in the .feed-card CSS.
+const picSizes = "(min-width: 1280px) 40vw, (min-width: 1024px) 45vw, (min-width: 768px) 65vw, 100vw";
 </script>
 
 <style lang="scss" scoped>
-// Width scales with aspect ratio relative to the container — purely %-based so
-// it stays proportional at any viewport size, from mobile to cinema display.
-// Base multiplier: 50% means a 1:1 square = half the container width,
-// 16:9 landscape ≈ 89%, 9:16 portrait ≈ 28%.
-$feed-base: 60%;
-
 .feed-card {
   width: 100%;
-
-  // @include mobile {
-  //   width: min(100%, calc(var(--aspect, 1) * 80%));
-  // }
-
-  @include phablet {
-    margin-inline: auto;
-    width: min(100%, calc(var(--aspect, 1) * 80%));
-  }
+  margin-inline: auto;
+  // padding: 0 var(--unit-tiny);
+  width: min(100%, calc(var(--aspect, 1) * 90%));
 
   @include tablet {
     width: min(100%, calc(var(--aspect, 1) * 65%));
   }
-
   @include laptop {
     width: min(100%, calc(var(--aspect, 1) * 45%));
   }
-
   @include desktop {
     width: min(100%, calc(var(--aspect, 1) * 40%));
   }
@@ -119,12 +217,33 @@ $feed-base: 60%;
 
 .feed-card__media {
   display: block;
+  position: relative;
   width: 100%;
+  // Preserve the card's height when lb-flip-root is teleported to the lightbox.
+  // Without this, the only remaining child is the absolutely-positioned ghost
+  // (zero flow-height), so the card collapses and the layout jumps.
+  aspect-ratio: var(--aspect, 1);
   overflow: hidden;
+  border-radius: var(--radii-tiny);
+  cursor: zoom-in;
   transition: opacity var(--transition-fast);
 
   &:hover {
     opacity: 0.9;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foreground-primary);
+    outline-offset: 2px;
+  }
+
+  &--active {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  :deep(.lb-flip-root) {
+    display: block;
+    width: 100%;
   }
 
   :deep(.pic),
@@ -138,6 +257,12 @@ $feed-base: 60%;
     width: 100%;
     height: auto;
   }
+}
+
+.feed-card__ghost {
+  position: absolute;
+  inset: 0;
+  background: var(--background-secondary);
 }
 
 .feed-card__placeholder {
@@ -157,20 +282,15 @@ $feed-base: 60%;
   color: var(--foreground-primary);
   margin: 0;
 }
-
 .feed-card__caption {
   margin: 0;
 }
-
 .feed-card__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--unit-tinier);
 }
-
-.feed-card__tag {
-  &::before {
-    content: "#";
-  }
+.feed-card__tag::before {
+  content: "#";
 }
 </style>

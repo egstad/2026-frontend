@@ -7,7 +7,8 @@ import { gsap } from "gsap";
 
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
-import { workCategoryFromQuery } from "~/utils/workCategoryQuery";
+import { useWorkFilters } from "~/composables/useWorkFilters";
+import { categoryFromQuery } from "~/utils/workQuery";
 
 PageSetup({
   seoMeta: { title: "Artifact" },
@@ -18,9 +19,10 @@ definePageMeta({
 });
 
 const route = useRoute();
-const router = useRouter();
 const artifactStore = useArtifactStore();
 const device = useDeviceStore();
+const nuxtApp = useNuxtApp();
+const { activeSort, activeView, setSort, setView } = useWorkFilters();
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -37,7 +39,15 @@ const { data: media } = useAsyncData(
       slug,
       mediaType,
       alt,
+      autoplay,
       dateTaken,
+      locationName,
+      camera,
+      lens,
+      focalLength,
+      aperture,
+      shutterSpeed,
+      iso,
       _createdAt,
       "captionText": pt::text(caption),
       "imageUrl": image.asset->url,
@@ -48,43 +58,22 @@ const { data: media } = useAsyncData(
       "videoMeta": {
         "aspectRatio": video.asset->data.aspect_ratio
       },
-      "categories": categories[]->{ _id, name, slug }
+      "categories": categories[]->{ _id, name, slug },
+      "tags": tags[]->{ _id, name, slug }
     }
   `),
-  { lazy: false },
+  {
+    lazy: false,
+    getCachedData: (key) =>
+      nuxtApp.payload.data[key] || nuxtApp.static.data[key],
+  },
 );
 
-// ─── Category filter (URL query param) ────────────────────────────────────────
+// ─── URL-driven filter state (?c= category, ?s= sort, ?v= view) ──────────────
 
-const activeCategory = computed(() =>
-  workCategoryFromQuery(route.query.category),
-);
-
-function setCategory(slug: string | null) {
-  router.push({ query: slug ? { category: slug } : {} });
-}
-
-// ─── Sort ─────────────────────────────────────────────────────────────────────
-
-type SortOption = "random" | "newest" | "oldest";
-const activeSort = ref<SortOption>("random");
-
-function setSort(option: SortOption) {
-  if (option === "random" && activeSort.value === "random") {
-    artifactStore.reshuffle();
-  }
-  activeSort.value = option;
-}
+const activeCategory = computed(() => categoryFromQuery(route.query.c));
 
 // ─── View ─────────────────────────────────────────────────────────────────────
-
-type ViewOption = "inline" | "inline-small" | "feed";
-const activeView = ref<ViewOption>("inline");
-
-const rowHeight = computed(() => {
-  if (activeView.value === "inline-small") return 100;
-  return 330;
-});
 
 // ─── Shuffle ──────────────────────────────────────────────────────────────────
 
@@ -152,8 +141,12 @@ const displayMedia = computed(() => {
 
 // ─── Batch rendering ──────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 50;
-const visibleCount = ref(PAGE_SIZE);
+const TEXT_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 50;
+const PAGE_SIZE = computed(() =>
+  activeView.value === "text" ? TEXT_PAGE_SIZE : DEFAULT_PAGE_SIZE,
+);
+const visibleCount = ref(PAGE_SIZE.value);
 const sentinelEl = ref<HTMLElement | null>(null);
 let sentinelObserver: IntersectionObserver | null = null;
 
@@ -168,7 +161,7 @@ const resultsAnimKey = computed(
 );
 
 const RESULT_CARD_SELECTOR =
-  ".masonry__card, .media-grid > .media-card, .feed .feed-card";
+  ".masonry__card, .media-grid > .media-card, .feed .feed-card, .work-text .work-text__row";
 
 function elementsInViewport(elements: HTMLElement[]): HTMLElement[] {
   const vw = window.innerWidth;
@@ -224,6 +217,13 @@ function resultsAppear(el: Element, done: () => void) {
       );
       return;
     }
+    // @before-appear may have hidden the CONTAINER (when cards weren't in the DOM
+    // yet because async data resolved after the hook fired). Cards may also have
+    // arrived after that hook, so their opacity could be either 0 (set by the hook)
+    // or natural (1, if they mounted after). Normalise both cases here: restore the
+    // container and ensure every card starts at 0 so the stagger plays correctly.
+    gsap.set(el, { clearProps: "opacity" });
+    gsap.set(cards, { opacity: 0 });
     const { inView, offView } = splitInOffViewport(cards);
     if (offView.length) gsap.set(offView, { opacity: 1 });
     const targets = inView.length ? inView : cards;
@@ -262,6 +262,10 @@ function resultsEnter(el: Element, done: () => void) {
       );
       return;
     }
+    // Mirror the same container-restore + card-normalise pattern from resultsAppear
+    // to guard against the same async-data timing race.
+    gsap.set(el, { clearProps: "opacity" });
+    gsap.set(cards, { opacity: 0 });
     const { inView, offView } = splitInOffViewport(cards);
     if (offView.length) gsap.set(offView, { opacity: 1 });
     const targets = inView.length ? inView : cards;
@@ -310,10 +314,13 @@ function resultsLeave(el: Element, done: () => void) {
   });
 }
 
-// Reset to first page when filter or sort changes
-watch([activeCategory, activeSort, () => artifactStore.randomSeed], () => {
-  visibleCount.value = PAGE_SIZE;
-});
+// Reset to first page when filter, sort, or view changes
+watch(
+  [activeCategory, activeSort, activeView, () => artifactStore.randomSeed],
+  () => {
+    visibleCount.value = PAGE_SIZE.value;
+  },
+);
 
 // Masonry must not switch on until after mount: the dimensions plugin sets
 // winWidth before hydration, so the client would otherwise pick MasonryGrid
@@ -327,7 +334,7 @@ onMounted(() => {
     (entries) => {
       if (entries[0]?.isIntersecting) {
         visibleCount.value = Math.min(
-          visibleCount.value + PAGE_SIZE,
+          visibleCount.value + PAGE_SIZE.value,
           displayMedia.value.length,
         );
       }
@@ -372,67 +379,38 @@ const masonryItems = computed(() =>
     aspectRatio: getAspectRatio(item),
   })),
 );
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+// Freeze the column layout while the lightbox is open.
+// masonryColumns depends on device.winWidth, so resizing across the 1024px
+// breakpoint toggles the v-if between MasonryGrid and the flex grid, destroying
+// every MediaCard — including the active one. That remounts Vid.vue, which
+// reinitialises HLS.js and restarts the video from the beginning.
+// Solution: snapshot the column count when the lightbox opens and hold it there
+// until the lightbox closes, then let the grid update to the current viewport.
+
+const { activeArtifact: lbActiveArtifact } = useWorkLightbox();
+const frozenMasonryColumns = ref<number | null>(null);
+
+watch(
+  () => !!lbActiveArtifact.value,
+  (isOpen) => {
+    frozenMasonryColumns.value = isOpen ? masonryColumns.value : null;
+  },
+);
+
+const effectiveMasonryColumns = computed(() =>
+  frozenMasonryColumns.value !== null
+    ? frozenMasonryColumns.value
+    : masonryColumns.value,
+);
+
+// Provide the current filtered list to MediaCard / FeedCard so every card
 </script>
 
 <template>
   <Grid class="media-page mt-big">
     <Column>
-      <header class="media-header" v-if="media?.length">
-        <div class="filters">
-          <!-- Sort -->
-          <div class="filter-group">
-            <BaseButton
-              size="small"
-              :variant="activeSort === 'random' ? 'primary' : 'ghost'"
-              @click="setSort('random')"
-            >
-              random
-            </BaseButton>
-            <BaseButton
-              size="small"
-              :variant="activeSort === 'newest' ? 'primary' : 'ghost'"
-              @click="setSort('newest')"
-            >
-              newest
-            </BaseButton>
-            <BaseButton
-              size="small"
-              :variant="activeSort === 'oldest' ? 'primary' : 'ghost'"
-              @click="setSort('oldest')"
-            >
-              oldest
-            </BaseButton>
-          </div>
-
-          <!-- View -->
-          <div class="filter-group">
-            <BaseButton
-              size="small"
-              :variant="activeView === 'inline' ? 'primary' : 'ghost'"
-              @click="activeView = 'inline'"
-            >
-              inline
-            </BaseButton>
-            <BaseButton
-              size="small"
-              :variant="activeView === 'inline-small' ? 'primary' : 'ghost'"
-              @click="activeView = 'inline-small'"
-            >
-              inline small
-            </BaseButton>
-            <BaseButton
-              size="small"
-              :variant="activeView === 'feed' ? 'primary' : 'ghost'"
-              @click="activeView = 'feed'"
-            >
-              feed
-            </BaseButton>
-          </div>
-        </div>
-
-        <span class="count">{{ displayMedia.length }}/{{ media.length }}</span>
-      </header>
-
       <Transition
         appear
         mode="out-in"
@@ -454,27 +432,38 @@ const masonryItems = computed(() =>
             />
           </div>
 
+          <!-- Text view: table of contents -->
+          <div
+            v-else-if="activeView === 'text' && displayMedia.length"
+            class="work-text"
+          >
+            <WorkTextRow
+              v-for="item in visibleMedia"
+              :key="item._id"
+              :media="item"
+            />
+          </div>
+
           <div v-else-if="displayMedia.length" class="media-results">
             <MasonryGrid
-              v-if="masonryColumns > 0"
+              v-if="effectiveMasonryColumns > 0"
               :items="masonryItems"
-              :columns="masonryColumns"
+              :columns="effectiveMasonryColumns"
             >
               <template #default="{ item, index }">
-                <MediaCard :media="item" :priority="index < 6" />
+                <MediaCard
+                  :key="item._id"
+                  :media="item"
+                  :priority="index < 6"
+                />
               </template>
             </MasonryGrid>
 
-            <div
-              v-else
-              class="media-grid"
-              :style="{ '--row-height': `${rowHeight}px` }"
-            >
+            <div v-else class="media-grid">
               <MediaCard
                 v-for="(item, index) in visibleMedia"
                 :key="item._id"
                 :media="item"
-                :row-height="rowHeight"
                 :priority="index < 3"
               />
             </div>
@@ -491,6 +480,9 @@ const masonryItems = computed(() =>
 
       <!-- Sentinel: triggers next batch when scrolled into view -->
       <div ref="sentinelEl" class="sentinel" aria-hidden="true" />
+
+      <!-- Lightbox: dialog uses the top-layer so DOM position doesn't matter -->
+      <WorkMediaLightbox />
     </Column>
   </Grid>
 </template>
@@ -504,37 +496,6 @@ const masonryItems = computed(() =>
   padding-right: var(--unit-tinier);
 }
 
-.media-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--unit-tiny);
-  flex-wrap: wrap;
-}
-
-.filters {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--unit-small);
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.count {
-  font-size: var(--caption-2);
-  line-height: 1;
-  color: var(--foreground-tertiary);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-
 .media-results {
   min-height: 1px;
 }
@@ -542,6 +503,20 @@ const masonryItems = computed(() =>
 .media-grid {
   display: flex;
   flex-wrap: wrap;
+}
+
+.work-text {
+  display: grid;
+  grid-template-columns: 1fr;
+  // border-top: 1px solid var(--border-primary);
+
+  @include laptop {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: var(--grid-gap);
+  }
+  @include desktop {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .feed {

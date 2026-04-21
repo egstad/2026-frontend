@@ -47,7 +47,11 @@
           class="nav-col"
         >
           <li>
-            <NuxtLink to="/work" custom v-slot="{ href, navigate }">
+            <NuxtLink
+              :to="{ path: '/work', query: workQueryBase }"
+              custom
+              v-slot="{ href, navigate }"
+            >
               <a
                 :href="href"
                 class="nav-link"
@@ -64,7 +68,10 @@
           </li>
           <li v-for="cat in workCategories" :key="cat._id">
             <NuxtLink
-              :to="{ path: '/work', query: { category: cat.slug.current } }"
+              :to="{
+                path: '/work',
+                query: { ...workQueryBase, c: cat.slug.current },
+              }"
               custom
               v-slot="{ href, navigate }"
             >
@@ -86,6 +93,12 @@
             </NuxtLink>
           </li>
         </ul>
+
+        <!-- Work: sort + view (placeholder so subnav col keeps its height) -->
+        <ul
+          v-else-if="visibleRoute === 'work' || visibleRoute === 'work-index'"
+          class="nav-col"
+        />
 
         <!-- Logs: filters (FPO) -->
         <ul
@@ -114,6 +127,37 @@
         </ul>
       </div>
     </Column>
+
+    <!-- Col 3: work sort + view filters -->
+    <Column
+      v-if="isWorkRoute"
+      span-mobile="12"
+      span-tablet="6"
+      span-laptop="6"
+      span-desktop="8"
+      class="work-filters-col"
+    >
+      <div class="work-filters">
+        <BaseSelect
+          variant="text"
+          dropdown-align="left"
+          label="Sort"
+          :model-value="activeSort"
+          :options="sortOptions"
+          style="--select-value-min-width: 4.5em"
+          @update:model-value="(v) => setSort(v as SortOption)"
+        />
+        <BaseSelect
+          variant="text"
+          dropdown-align="right"
+          label="View"
+          :model-value="activeView"
+          :options="viewOptions"
+          style="--select-value-min-width: 2.5em"
+          @update:model-value="(v) => setView(v as ViewOption)"
+        />
+      </div>
+    </Column>
   </Grid>
 </template>
 
@@ -121,7 +165,9 @@
 import { gsap } from "gsap";
 import { useEggMode } from "~/composables/useEggMode";
 import { useWorkCategories } from "~/composables/useWorkCategories";
-import { workCategoryFromQuery } from "~/utils/workCategoryQuery";
+import { useWorkFilters } from "~/composables/useWorkFilters";
+import { categoryFromQuery } from "~/utils/workQuery";
+import type { SortOption, ViewOption } from "~/utils/workQuery";
 
 interface Section {
   label: string;
@@ -131,6 +177,7 @@ interface Section {
 const route = useRoute();
 const { isActive: eggActive, toggle: toggleEgg } = useEggMode();
 const { data: workCategories } = await useWorkCategories();
+const { activeSort, activeView, setSort, setView } = useWorkFilters();
 const activeSection = ref("");
 const subnavEl = ref<HTMLElement | null>(null);
 
@@ -139,9 +186,31 @@ const routeName = computed(() => route.name?.toString().split("___")[0] ?? "");
 // Lags behind routeName — controls what's rendered while animations play
 const visibleRoute = ref(routeName.value);
 
-const activeCategory = computed(() =>
-  workCategoryFromQuery(route.query.category),
+const activeCategory = computed(() => categoryFromQuery(route.query.c));
+
+const isWorkRoute = computed(
+  () => routeName.value === "work" || routeName.value === "work-index",
 );
+
+const sortOptions = [
+  { label: "Random", value: "random" },
+  { label: "Newest", value: "newest" },
+  { label: "Oldest", value: "oldest" },
+];
+
+const viewOptions = [
+  { label: "Grid", value: "inline" },
+  { label: "Feed", value: "feed" },
+  { label: "Text", value: "text" },
+];
+
+// Preserve sort/view params when navigating between categories
+const workQueryBase = computed(() => {
+  const q: Record<string, string> = {};
+  if (route.query.s) q.s = route.query.s as string;
+  if (route.query.v) q.v = route.query.v as string;
+  return q;
+});
 
 /** True when no ?category=… (normalized) — “All” is the current filter. */
 const workAllSelected = computed(() => activeCategory.value === undefined);
@@ -360,6 +429,26 @@ onUnmounted(() => {
   &.is-active {
     opacity: 1;
     color: var(--foreground-quaternary);
+  }
+}
+
+.work-filters-col {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.work-filters {
+  margin-top: var(--unit-small);
+  display: grid;
+  gap: var(--grid-gap);
+  width: 100%;
+  grid-template-columns: 1fr 1fr;
+
+  @include tablet {
+    width: auto;
+    margin-left: auto;
+    margin-top: 0;
   }
 }
 </style>
