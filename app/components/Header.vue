@@ -44,6 +44,7 @@ function onScroll() {
     }
   }
   scrollY.value = y;
+  if (panelOpen.value) closePanel();
 }
 
 onMounted(() => {
@@ -188,11 +189,29 @@ const subLabel = computed(() => {
 // ─── Panel animations ─────────────────────────────────────────────────────────
 
 function onPanelEnter(el: Element, done: () => void) {
-  gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out", onComplete: done });
+  gsap.fromTo(
+    el,
+    { height: 0, opacity: 0, overflow: "hidden" },
+    {
+      height: "auto",
+      opacity: 1,
+      duration: 0.35,
+      ease: "power2.out",
+      clearProps: "height,overflow",
+      onComplete: done,
+    },
+  );
 }
 
 function onPanelLeave(el: Element, done: () => void) {
-  gsap.to(el, { opacity: 0, duration: 0.2, ease: "power2.in", onComplete: done });
+  gsap.to(el, {
+    height: 0,
+    opacity: 0,
+    overflow: "hidden",
+    duration: 0.25,
+    ease: "power2.in",
+    onComplete: done,
+  });
 }
 </script>
 
@@ -230,7 +249,6 @@ function onPanelLeave(el: Element, done: () => void) {
         <div
           v-if="isWorkRoute"
           class="sticky-header__bar-filters"
-          :class="{ 'is-hidden': panelOpen }"
         >
           <BaseSelect
             variant="text"
@@ -390,14 +408,14 @@ function onPanelLeave(el: Element, done: () => void) {
             </ul>
           </Column>
 
-          <!-- Col 3: work sort + view -->
+          <!-- Col 3: work sort + view (mobile only — tablet+ uses bar inline filters) -->
           <Column
             v-if="isWorkRoute"
             span-mobile="12"
             span-tablet="6"
             span-laptop="6"
             span-desktop="8"
-            class="work-filters-col"
+            class="work-filters-col work-filters-col--panel"
           >
             <div class="work-filters">
               <BaseSelect
@@ -536,12 +554,6 @@ function onPanelLeave(el: Element, done: () => void) {
 .sticky-header__bar-filters {
   display: none;
   gap: var(--unit-small);
-  transition: opacity var(--transition);
-
-  &.is-hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
 
   @include tablet {
     display: flex;
@@ -654,6 +666,12 @@ function onPanelLeave(el: Element, done: () => void) {
   display: flex;
   align-items: flex-start;
   width: 100%;
+}
+
+.work-filters-col--panel {
+  @include tablet {
+    display: none;
+  }
 }
 
 .work-filters {

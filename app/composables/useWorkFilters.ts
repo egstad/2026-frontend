@@ -21,6 +21,10 @@ export function useWorkFilters() {
     return q
   }
 
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   function setSort(option: SortOption) {
     if (option === 'random' && activeSort.value === 'random') {
       artifactStore.reshuffle()
@@ -28,12 +32,14 @@ export function useWorkFilters() {
     router.push({
       query: buildQuery({ s: option === 'random' ? undefined : option }),
     })
+    scrollToTop()
   }
 
   function setView(option: ViewOption) {
     router.push({
       query: buildQuery({ v: option === 'inline' ? undefined : option }),
     })
+    scrollToTop()
   }
 
   return { activeSort, activeView, setSort, setView }
