@@ -7,12 +7,8 @@ import { gsap } from "gsap";
 
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
-import {
-  sortFromQuery,
-  viewFromQuery,
-  categoryFromQuery,
-} from "~/utils/workQuery";
-import type { SortOption, ViewOption } from "~/utils/workQuery";
+import { useWorkFilters } from "~/composables/useWorkFilters";
+import { categoryFromQuery } from "~/utils/workQuery";
 
 PageSetup({
   seoMeta: { title: "Artifact" },
@@ -23,10 +19,10 @@ definePageMeta({
 });
 
 const route = useRoute();
-const router = useRouter();
 const artifactStore = useArtifactStore();
 const device = useDeviceStore();
 const nuxtApp = useNuxtApp();
+const { activeSort, activeView, setSort, setView } = useWorkFilters();
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -76,39 +72,6 @@ const { data: media } = useAsyncData(
 // ─── URL-driven filter state (?c= category, ?s= sort, ?v= view) ──────────────
 
 const activeCategory = computed(() => categoryFromQuery(route.query.c));
-const activeSort = computed(() => sortFromQuery(route.query.s));
-const activeView = computed(() => viewFromQuery(route.query.v));
-
-function buildQuery(patch: Record<string, string | undefined>) {
-  const q: Record<string, string> = {};
-  for (const key of ["c", "s", "v"] as const) {
-    // Use patch value if the key was explicitly provided, otherwise keep current
-    const val = Object.hasOwn(patch, key)
-      ? patch[key]
-      : (route.query[key] as string | undefined);
-    if (val) q[key] = val;
-  }
-  return q;
-}
-
-function setCategory(slug: string | null) {
-  router.push({ query: buildQuery({ c: slug || undefined }) });
-}
-
-function setSort(option: SortOption) {
-  if (option === "random" && activeSort.value === "random") {
-    artifactStore.reshuffle();
-  }
-  router.push({
-    query: buildQuery({ s: option === "random" ? undefined : option }),
-  });
-}
-
-function setView(option: ViewOption) {
-  router.push({
-    query: buildQuery({ v: option === "inline" ? undefined : option }),
-  });
-}
 
 // ─── View ─────────────────────────────────────────────────────────────────────
 
@@ -448,62 +411,6 @@ const effectiveMasonryColumns = computed(() =>
 <template>
   <Grid class="media-page mt-big">
     <Column>
-      <header class="media-header" v-if="media?.length">
-        <div class="filters">
-          <!-- Sort -->
-          <div class="filter-group">
-            <BaseButton
-              size="small"
-              :variant="activeSort === 'random' ? 'primary' : 'ghost'"
-              @click="setSort('random')"
-            >
-              random
-            </BaseButton>
-            <BaseButton
-              size="small"
-              :variant="activeSort === 'newest' ? 'primary' : 'ghost'"
-              @click="setSort('newest')"
-            >
-              newest
-            </BaseButton>
-            <BaseButton
-              size="small"
-              :variant="activeSort === 'oldest' ? 'primary' : 'ghost'"
-              @click="setSort('oldest')"
-            >
-              oldest
-            </BaseButton>
-          </div>
-
-          <!-- View -->
-          <div class="filter-group">
-            <BaseButton
-              size="small"
-              :variant="activeView === 'inline' ? 'primary' : 'ghost'"
-              @click="setView('inline')"
-            >
-              inline
-            </BaseButton>
-            <BaseButton
-              size="small"
-              :variant="activeView === 'feed' ? 'primary' : 'ghost'"
-              @click="setView('feed')"
-            >
-              feed
-            </BaseButton>
-            <BaseButton
-              size="small"
-              :variant="activeView === 'text' ? 'primary' : 'ghost'"
-              @click="setView('text')"
-            >
-              text
-            </BaseButton>
-          </div>
-        </div>
-
-        <span class="count">{{ displayMedia.length }}/{{ media.length }}</span>
-      </header>
-
       <Transition
         appear
         mode="out-in"
@@ -587,37 +494,6 @@ const effectiveMasonryColumns = computed(() =>
   min-height: 100vh;
   padding-left: var(--unit-tinier);
   padding-right: var(--unit-tinier);
-}
-
-.media-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--unit-tiny);
-  flex-wrap: wrap;
-}
-
-.filters {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--unit-small);
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.count {
-  font-size: var(--caption-2);
-  line-height: 1;
-  color: var(--foreground-tertiary);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
 }
 
 .media-results {
