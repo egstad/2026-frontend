@@ -7,16 +7,12 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "postinstall": "nuxt prepare"
   },
   "devDependencies": {
     "@nuxt/devtools": "latest",
-    "@storybook/vue3-vite": "^10.3.3",
     "sass": "^1.93.2",
     "shiki": "^3.13.0",
-    "storybook": "^10.3.3",
     "vue-router": "^4.6.3"
   },
   "dependencies": {
