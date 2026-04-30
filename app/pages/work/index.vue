@@ -10,9 +10,8 @@ import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
 import { useWorkFilters } from "~/composables/useWorkFilters";
 import { categoryFromQuery } from "~/utils/workQuery";
 
-PageSetup({
-  seoMeta: { title: "Artifact" },
-});
+PageSetup();
+useSanityPageSeo("work");
 
 definePageMeta({
   pageTransition: pageTransitionDefault(),

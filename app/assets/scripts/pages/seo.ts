@@ -1,23 +1,26 @@
-// Define SEOData type inline instead of importing
-export type SEOData = {
-  title: string;
-  description: string;
-  image?: string;
-  ogTitle?: string;
-  ogDescription?: string;
-  ogImage?: string;
-  twitterCard?: string | null;
-};
+import type { SEOData } from "~/types/SEOData";
 
 export default function pageSEO(seoData: SEOData) {
-  const defaultData: SEOData = {
-    title: seoData.title,
-    ogTitle: seoData.title,
-    description: seoData.description,
-    ogDescription: seoData.description,
-    ogImage: seoData.image,
-    twitterCard: seoData.image ? "summary_large_image" : null,
-  };
+  const title = seoData.title;
+  const ogTitle = seoData.ogTitle ?? title;
+  const ogImage = seoData.ogImage ?? seoData.image;
+  const description = seoData.description;
+  const ogDescription = seoData.ogDescription ?? description;
 
-  return { ...defaultData };
+  return {
+    title,
+    ogTitle,
+    ogType: "website" as const,
+    ...(description
+      ? { description, ogDescription: ogDescription ?? description }
+      : {}),
+    ...(ogImage
+      ? {
+          ogImage,
+          twitterImage: ogImage,
+          twitterCard: "summary_large_image" as const,
+        }
+      : {}),
+    ...(seoData.canonicalUrl ? { ogUrl: seoData.canonicalUrl } : {}),
+  };
 }

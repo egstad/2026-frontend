@@ -2,9 +2,8 @@
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
 
-PageSetup({
-  seoMeta: { title: "Contact" },
-});
+PageSetup();
+useSanityPageSeo("contact");
 
 definePageMeta({
   pageTransition: pageTransitionDefault(),

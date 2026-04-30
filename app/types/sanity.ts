@@ -122,3 +122,10 @@ export interface Log {
   date: string
   content?: any[]
 }
+
+/** `_type == "page"` — fields match `useSanityPageSeo` GROQ projection */
+export interface SanityPageSeo {
+  metaTitle?: string | null
+  metaDescription?: string | null
+  ogImage?: SanityImage | null
+}

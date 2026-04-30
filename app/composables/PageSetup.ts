@@ -1,7 +1,8 @@
 // ~/composables/PageSetup.ts
-import { onMounted, onUnmounted } from "vue";
+import { onMounted } from "vue";
 import pageSEO from "~/assets/scripts/pages/seo";
 import type { SEOData } from "~/types/SEOData";
+import { applySiteTitleTemplate } from "~/utils/seoSiteTitle";
 
 interface PageSetupOptions {
   seoMeta?: SEOData;
@@ -10,17 +11,30 @@ interface PageSetupOptions {
 export default function PageSetup(options?: PageSetupOptions) {
   const nuxt = useNuxtApp();
 
-  onMounted(() => {
-    // Update dimension on refresh
-    (nuxt.$dimensions as any).set();
-
-    // Set page meta if seoMeta is provided
-    if (options?.seoMeta) {
-      useSeoMeta(pageSEO(options.seoMeta));
+  if (options?.seoMeta) {
+    const defaults = useSeoPublicDefaults();
+    const resolved: SEOData = { ...options.seoMeta };
+    if (!resolved.ogTitle) {
+      resolved.ogTitle = applySiteTitleTemplate(resolved.title, defaults.siteName);
     }
-  });
+    const desc = resolved.description?.trim();
+    if (!desc && defaults.defaultMetaDescription) {
+      resolved.description = defaults.defaultMetaDescription;
+    }
+    const hasCustomImage = Boolean(resolved.ogImage ?? resolved.image);
+    if (!hasCustomImage) {
+      resolved.ogImage = defaults.defaultOgImageUrl;
+    }
+    useSeoMeta(pageSEO(resolved));
+    const canonical = options.seoMeta.canonicalUrl;
+    if (canonical) {
+      useHead({
+        link: [{ rel: "canonical", href: canonical }],
+      });
+    }
+  }
 
-  onUnmounted(() => {
-    // Your onUnmounted logic
+  onMounted(() => {
+    (nuxt.$dimensions as any).set();
   });
 }

@@ -1,7 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   routeRules: {
-    "/work": { isr: 60 * 10 }, // revalidate every 10 min
+    // ISR caches HTML + payload; skip in dev so Sanity title changes show on refresh.
+    ...(import.meta.dev ? {} : { "/work": { isr: 60 * 10 } }),
   },
   modules: ["@pinia/nuxt", "@nuxt/image"],
   image: {
@@ -25,6 +26,24 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       arenaAccessToken: "", // Auto-populated from NUXT_PUBLIC_ARENA_ACCESS_TOKEN
+      /** Absolute site origin for canonical URLs and OG fallbacks, e.g. https://example.com */
+      siteUrl: "https://egstad.com",
+      /**
+       * Appended to page titles as ` | {siteName}` (HTML + og:title). Set in config or
+       * `NUXT_PUBLIC_SITE_NAME`. Leave empty to use only the CMS / slug title.
+       */
+      siteName: "Jordan Egstad",
+      /**
+       * Used when a Sanity `page` has no `metaDescription`, and for non-Sanity pages that omit description.
+       * `NUXT_PUBLIC_DEFAULT_META_DESCRIPTION`.
+       */
+      defaultMetaDescription:
+        "Starting with the idea, staying until it’s clear. A designer and developer.",
+      /**
+       * Fallback share image path (`public/`). Resolved to an absolute URL with `siteUrl`.
+       * `NUXT_PUBLIC_DEFAULT_OG_IMAGE_PATH`.
+       */
+      defaultOgImagePath: "/images/og-default.jpg",
     },
   },
   plugins: [

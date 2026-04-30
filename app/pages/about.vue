@@ -4,7 +4,8 @@ import type { WorkHistory, Client, Great, Portrait } from "~/types/sanity";
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
 
-PageSetup({ seoMeta: { title: "About" } });
+PageSetup();
+useSanityPageSeo("about");
 
 definePageMeta({
   pageTransition: pageTransitionDefault(),
