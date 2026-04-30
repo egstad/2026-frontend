@@ -26,10 +26,7 @@ const { activeSort, activeView, setSort, setView } = useWorkFilters();
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-// No top-level await: `<script setup>` + await makes this an async component; Vue
-// can defer inner hydration (`__asyncHydrate`) so the first client pass still has
-// `media === null` while the DOM from SSR already has the grid → mismatches.
-const { data: media } = useAsyncData(
+const { data: media } = await useAsyncData(
   "artifact",
   () =>
     sanityClient.fetch<Artifact[]>(`
@@ -63,9 +60,8 @@ const { data: media } = useAsyncData(
     }
   `),
   {
-    lazy: false,
     getCachedData: (key) =>
-      nuxtApp.payload.data[key] || nuxtApp.static.data[key],
+      nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   },
 );
 

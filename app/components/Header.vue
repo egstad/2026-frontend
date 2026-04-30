@@ -5,6 +5,7 @@ import { useWorkFilters } from "~/composables/useWorkFilters";
 import { categoryFromQuery } from "~/utils/workQuery";
 import { useDeviceStore } from "~/stores/device";
 import type { SortOption, ViewOption } from "~/utils/workQuery";
+import type { Artifact } from "~/types/sanity";
 
 const route = useRoute();
 const device = useDeviceStore();
@@ -78,6 +79,21 @@ const isWorkRoute = computed(
 
 // ─── Work ─────────────────────────────────────────────────────────────────────
 
+const { data: artifacts } = useNuxtData<Artifact[]>("artifact");
+
+const artifactTotal = computed(() => artifacts.value?.length ?? 0);
+
+const artifactCountByCategory = computed(() => {
+  const counts: Record<string, number> = {};
+  for (const item of artifacts.value ?? []) {
+    for (const cat of item.categories ?? []) {
+      const slug = cat.slug?.current;
+      if (slug) counts[slug] = (counts[slug] ?? 0) + 1;
+    }
+  }
+  return counts;
+});
+
 const activeCategory = computed(() => categoryFromQuery(route.query.c));
 const workAllSelected = computed(() => activeCategory.value === undefined);
 
@@ -146,7 +162,6 @@ onUnmounted(() => sectionObserver?.disconnect());
 const pages = [
   { label: "Work", to: "/work" },
   { label: "About", to: "/about" },
-  { label: "Logs", to: "/logs" },
   { label: "Contact", to: "/contact" },
 ];
 
@@ -167,6 +182,13 @@ const activeCategoryName = computed(
     workCategories.value?.find((c) => c.slug?.current === activeCategory.value)
       ?.name ?? null,
 );
+
+const subCount = computed(() => {
+  if (!isWorkRoute.value) return null;
+  if (workAllSelected.value) return artifactTotal.value || null;
+  const cat = activeCategory.value;
+  return cat ? (artifactCountByCategory.value[cat] ?? null) : null;
+});
 
 const activeSectionLabel = computed(
   () => aboutSections.find((s) => s.id === activeSection.value)?.label ?? "",
@@ -235,6 +257,7 @@ function onPanelLeave(el: Element, done: () => void) {
           <span v-if="subLabel" class="sticky-header__sep" aria-hidden="true">/</span>
           <span class="sticky-header__sub">
             <Text size="caption-1">{{ subLabel }}</Text>
+            <Text v-if="subCount" size="caption-1" color="dimmer">{{ subCount }}</Text>
           </span>
         </nav>
         <span
@@ -349,6 +372,9 @@ function onPanelLeave(el: Element, done: () => void) {
                     "
                   >
                     <Text>All</Text>
+                    <span v-if="artifactTotal" class="sticky-header__count">
+                      <Text color="dimmer">{{ artifactTotal }}</Text>
+                    </span>
                   </a>
                 </NuxtLink>
               </li>
@@ -375,6 +401,9 @@ function onPanelLeave(el: Element, done: () => void) {
                     "
                   >
                     <Text>{{ cat.name }}</Text>
+                    <span v-if="artifactCountByCategory[cat.slug.current]" class="sticky-header__count">
+                      <Text color="dimmer">{{ artifactCountByCategory[cat.slug.current] }}</Text>
+                    </span>
                   </a>
                 </NuxtLink>
               </li>
@@ -633,6 +662,9 @@ function onPanelLeave(el: Element, done: () => void) {
   cursor: pointer;
   appearance: none;
   transition: color var(--transition-fast);
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
 
   &:hover {
     color: var(--foreground-primary);
@@ -685,6 +717,19 @@ function onPanelLeave(el: Element, done: () => void) {
     width: auto;
     margin-left: auto;
     margin-top: 0;
+  }
+}
+
+// ── Count ─────────────────────────────────────────────────────────────────────
+
+.sticky-header__count {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  display: contents;
+
+  .sticky-header__link.is-active &,
+  .sticky-header__link:hover & {
+    opacity: 1;
   }
 }
 

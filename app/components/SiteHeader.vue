@@ -46,7 +46,7 @@
           v-else-if="visibleRoute === 'work' || visibleRoute === 'work-index'"
           class="nav-col"
         >
-          <li>
+          <li class="nav-item">
             <NuxtLink
               :to="{ path: '/work', query: workQueryBase }"
               custom
@@ -65,12 +65,15 @@
                 <Text>All</Text>
               </a>
             </NuxtLink>
+            <span v-if="artifactTotal" class="nav-count">
+              <Text color="dimmer">({{ artifactTotal }})</Text>
+            </span>
           </li>
-          <li v-for="cat in workCategories" :key="cat._id">
+          <li v-for="cat in workCategories" :key="cat._id" class="nav-item">
             <NuxtLink
               :to="{
                 path: '/work',
-                query: { ...workQueryBase, c: cat.slug.current },
+                query: { ...workQueryBase, c: cat.slug?.current },
               }"
               custom
               v-slot="{ href, navigate }"
@@ -79,18 +82,21 @@
                 :href="href"
                 class="nav-link"
                 :class="{
-                  'is-active': activeCategory === cat.slug.current,
+                  'is-active': activeCategory === cat.slug?.current,
                   'is-inactive':
-                    !!activeCategory && activeCategory !== cat.slug.current,
+                    !!activeCategory && activeCategory !== cat.slug?.current,
                 }"
                 :aria-current="
-                  activeCategory === cat.slug.current ? 'page' : undefined
+                  activeCategory === cat.slug?.current ? 'page' : undefined
                 "
                 @click="navigate"
               >
                 <Text>{{ cat.name }}</Text>
               </a>
             </NuxtLink>
+            <span v-if="artifactCountByCategory[cat.slug?.current]" class="nav-count">
+              <Text color="dimmer">({{ artifactCountByCategory[cat.slug?.current] }})</Text>
+            </span>
           </li>
         </ul>
 
@@ -168,6 +174,7 @@ import { useWorkCategories } from "~/composables/useWorkCategories";
 import { useWorkFilters } from "~/composables/useWorkFilters";
 import { categoryFromQuery } from "~/utils/workQuery";
 import type { SortOption, ViewOption } from "~/utils/workQuery";
+import type { Artifact } from "~/types/sanity";
 
 interface Section {
   label: string;
@@ -176,10 +183,32 @@ interface Section {
 
 const route = useRoute();
 const { isActive: eggActive, toggle: toggleEgg } = useEggMode();
-const { data: workCategories } = await useWorkCategories();
+const { data: rawWorkCategories } = await useWorkCategories();
+const workCategories = computed(() =>
+  (rawWorkCategories.value ?? []).filter((c) => {
+    if (!c?.slug?.current) return false;
+    if (!artifacts.value) return true;
+    return !!artifactCountByCategory.value[c.slug.current];
+  }),
+);
 const { activeSort, activeView, setSort, setView } = useWorkFilters();
 const activeSection = ref("");
 const subnavEl = ref<HTMLElement | null>(null);
+
+const { data: artifacts } = useNuxtData<Artifact[]>("artifact");
+
+const artifactTotal = computed(() => artifacts.value?.length ?? 0);
+
+const artifactCountByCategory = computed(() => {
+  const counts: Record<string, number> = {};
+  for (const item of artifacts.value ?? []) {
+    for (const cat of item.categories ?? []) {
+      const slug = cat.slug?.current;
+      if (slug) counts[slug] = (counts[slug] ?? 0) + 1;
+    }
+  }
+  return counts;
+});
 
 const routeName = computed(() => route.name?.toString().split("___")[0] ?? "");
 
@@ -220,7 +249,6 @@ const workAllSelected = computed(() => activeCategory.value === undefined);
 const pages = [
   { label: "Work", to: "/work" },
   { label: "About", to: "/about" },
-  { label: "Logs", to: "/logs" },
   { label: "Contact", to: "/contact" },
 ];
 
@@ -382,6 +410,12 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
+.nav-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+}
+
 .nav-link {
   color: var(--foreground-quaternary);
   display: block;
@@ -394,7 +428,8 @@ onUnmounted(() => {
     color var(--transition-fast),
     opacity var(--transition-fast);
 
-  &:hover {
+  &:hover,
+  &.is-inactive:hover {
     color: var(--foreground-primary);
   }
 
@@ -419,6 +454,21 @@ onUnmounted(() => {
   //   cursor: default;
   //   opacity: 0.4;
   // }
+}
+
+.nav-count {
+  opacity: 0;
+  color: var(--foreground-quaternary);
+  transition: opacity var(--transition-fast);
+
+  :deep([class^="t-"]) {
+    color: inherit;
+  }
+
+  .nav-item:hover &,
+  .nav-item:has(.is-active) & {
+    opacity: 1;
+  }
 }
 
 .egg-btn {
