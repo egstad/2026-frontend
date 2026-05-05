@@ -127,5 +127,5 @@ export interface Log {
 export interface SanityPageSeo {
   metaTitle?: string | null
   metaDescription?: string | null
-  ogImage?: SanityImage | null
+  ogImage?: Pick<SanityImage, 'asset'> | null
 }

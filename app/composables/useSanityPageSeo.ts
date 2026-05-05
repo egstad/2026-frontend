@@ -5,14 +5,9 @@ import { applySiteTitleTemplate } from "~/utils/seoSiteTitle";
 
 const PAGE_SEO_BY_SLUG = `*[_type == "page" && slug.current == $slug][0] {
   "metaTitle": coalesce(seoTitle, title),
-  "metaDescription": select(
-    type(metaDescription) == "string" => metaDescription,
-    defined(metaDescription) => pt::text(metaDescription)
-  ),
+  metaDescription,
   ogImage {
-    ...,
-    hotspot,
-    crop
+    asset
   }
 }`;
 
@@ -21,15 +16,6 @@ function fallbackMetaTitle(slug: string): string {
   return slug.charAt(0).toUpperCase() + slug.slice(1);
 }
 
-/** CMS may send string, PT, or empty — never throw (throws break the whole seo computed → missing og tags). */
-function plainMetaDescription(raw: unknown): string | undefined {
-  if (raw == null) return undefined;
-  if (typeof raw === "string") {
-    const t = raw.trim();
-    return t || undefined;
-  }
-  return undefined;
-}
 
 function resolveOgImageUrl(
   ogImage: SanityPageSeo["ogImage"],
@@ -63,7 +49,7 @@ export function useSanityPageSeo(slug: string) {
     const meta = doc?.metaTitle?.trim();
     const baseTitle = meta || fallbackMetaTitle(slug);
     const description =
-      plainMetaDescription(doc?.metaDescription) ||
+      doc?.metaDescription?.trim() ||
       defaults.defaultMetaDescription ||
       undefined;
     const ogImageUrl =
