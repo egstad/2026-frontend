@@ -9,6 +9,17 @@ export const sanityClient = createClient({
   useCdn: true,
 })
 
+/**
+ * Same project, but `useCdn: false` — hits the live API so title/description/OG updates from Studio
+ * show up without waiting on Sanity’s CDN cache (still requires published documents).
+ */
+export const sanityApiClient = createClient({
+  projectId: 'p9yhyed1',
+  dataset: 'production',
+  apiVersion: '2024-01-01',
+  useCdn: false,
+})
+
 const builder = createImageUrlBuilder(sanityClient)
 
 export function urlFor(source: SanityImageSource) {

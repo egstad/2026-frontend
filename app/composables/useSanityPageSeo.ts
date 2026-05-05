@@ -1,4 +1,4 @@
-import { sanityClient, urlFor } from "~/utils/sanity";
+import { sanityApiClient, urlFor } from "~/utils/sanity";
 import pageSEO from "~/assets/scripts/pages/seo";
 import type { SanityPageSeo } from "~/types/sanity";
 import { applySiteTitleTemplate } from "~/utils/seoSiteTitle";
@@ -52,7 +52,7 @@ export function useSanityPageSeo(slug: string) {
   const { data } = useAsyncData(
     `page-seo-${slug}`,
     () =>
-      sanityClient.fetch<SanityPageSeo | null>(PAGE_SEO_BY_SLUG, { slug }),
+      sanityApiClient.fetch<SanityPageSeo | null>(PAGE_SEO_BY_SLUG, { slug }),
   );
 
   const canonicalUrl = `${defaults.origin}${route.path}`;
