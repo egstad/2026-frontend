@@ -9,8 +9,15 @@ defineProps<{ media: Artifact }>();
   <Text size="caption-2" class="meta-panel">
     <h2 class="meta-panel__title">{{ media.title }}</h2>
 
-    <p v-if="media.captionText" class="meta-panel__caption">
-      {{ media.captionText }}
+    <p v-if="media.caption?.length" class="meta-panel__caption">
+      <template v-for="block in media.caption" :key="block._key">
+        <PortableTextSpan
+          v-for="child in block.children"
+          :key="child._key"
+          :span="child"
+          :markDefs="block.markDefs"
+        />
+      </template>
     </p>
 
     <dl

@@ -49,14 +49,19 @@
       <Text size="caption-2" is="h2" class="feed-card__title">
         {{ media.title }}
       </Text>
-      <Text
-        v-if="media.captionText"
-        size="caption-2"
-        color="dim"
-        class="feed-card__caption"
+      <p
+        v-if="media.caption?.length"
+        class="feed-card__caption t-caption-2 t-dim"
       >
-        {{ media.captionText }}
-      </Text>
+        <template v-for="block in media.caption" :key="block._key">
+          <PortableTextSpan
+            v-for="child in block.children"
+            :key="child._key"
+            :span="child"
+            :markDefs="block.markDefs"
+          />
+        </template>
+      </p>
       <div v-if="media.categories?.length" class="feed-card__tags">
         <Text
           v-for="cat in media.categories"

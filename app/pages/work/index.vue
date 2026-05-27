@@ -45,6 +45,7 @@ const { data: media } = await useAsyncData(
       shutterSpeed,
       iso,
       _createdAt,
+      caption,
       "captionText": pt::text(caption),
       "imageUrl": image.asset->url,
       "imageMeta": {

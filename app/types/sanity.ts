@@ -54,6 +54,27 @@ export interface VideoMetadata {
   aspectRatio?: string // Mux returns as "16:9" string format
 }
 
+export interface PortableTextMarkDef {
+  _key: string
+  _type: string
+  href?: string
+}
+
+export interface PortableTextSpanNode {
+  _type: 'span'
+  _key?: string
+  text?: string
+  marks?: string[]
+}
+
+export interface PortableTextBlock {
+  _type: 'block'
+  _key?: string
+  style?: string
+  children?: PortableTextSpanNode[]
+  markDefs?: PortableTextMarkDef[]
+}
+
 export interface Artifact {
   _id: string
   _type: 'artifact'
@@ -64,7 +85,7 @@ export interface Artifact {
   image?: SanityImage
   video?: MuxVideo
   alt?: string
-  caption?: any[]
+  caption?: PortableTextBlock[]
   captionText?: string
   categories?: Category[]
   tags?: Tag[]

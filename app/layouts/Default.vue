@@ -1,10 +1,9 @@
 <template>
   <div class="site-wrapper">
-    <SiteIntro />
     <Header />
     <SiteHeader />
     <main class="site-content">
-      <Scrim />
+      <!-- <Scrim /> -->
       <NuxtPage />
     </main>
   </div>
