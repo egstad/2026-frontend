@@ -45,7 +45,16 @@ const { data: media } = await useAsyncData(
       shutterSpeed,
       iso,
       _createdAt,
-      caption,
+      caption[] {
+        ...,
+        markDefs[] {
+          ...,
+          _type == "internalLink" => {
+            ...,
+            "reference": reference->{ _type, slug, title }
+          }
+        }
+      },
       "captionText": pt::text(caption),
       "imageUrl": image.asset->url,
       "imageMeta": {

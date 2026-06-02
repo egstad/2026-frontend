@@ -4,8 +4,9 @@ import { useWorkCategories } from "~/composables/useWorkCategories";
 import { useWorkFilters } from "~/composables/useWorkFilters";
 import { categoryFromQuery } from "~/utils/workQuery";
 import { useDeviceStore } from "~/stores/device";
+import { formatDate } from "~/utils/formatDate";
 import type { SortOption, ViewOption } from "~/utils/workQuery";
-import type { Artifact } from "~/types/sanity";
+import type { Artifact, Log, PortableTextBlock } from "~/types/sanity";
 
 const route = useRoute();
 const device = useDeviceStore();
@@ -162,6 +163,7 @@ onUnmounted(() => sectionObserver?.disconnect());
 const pages = [
   { label: "Work", to: "/work" },
   { label: "About", to: "/about" },
+  { label: "Logs", to: "/logs" },
   { label: "Contact", to: "/contact" },
 ];
 
@@ -194,10 +196,40 @@ const activeSectionLabel = computed(
   () => aboutSections.find((s) => s.id === activeSection.value)?.label ?? "",
 );
 
+const nuxtApp = useNuxtApp();
+
+const currentLog = computed<Log | null>(() => {
+  if (routeName.value !== "logs-slug") return null;
+  const slug = Array.isArray(route.params.slug) ? route.params.slug[0] : route.params.slug;
+  return (nuxtApp.payload.data[`log-${slug}`] as Log | null | undefined) ?? null;
+});
+
+const logTitle = computed(() => currentLog.value?.title ?? null);
+
+const logMeta = computed(() => {
+  const log = currentLog.value;
+  if (!log) return null;
+  let words = 0;
+  for (const block of log.content ?? []) {
+    if (block._type === "block") {
+      for (const child of (block as PortableTextBlock).children ?? []) {
+        if (child.text) words += child.text.trim().split(/\s+/).filter(Boolean).length;
+      }
+    }
+  }
+  return {
+    date: formatDate(log.date),
+    mins: words ? Math.ceil(words / 200) : null,
+  };
+});
+
+const allParentPages = [...pages, { label: "Logs", to: "/logs" }];
+
 const parentPage = computed(
   () =>
-    pages.find((p) => routeName.value.startsWith(p.label.toLowerCase())) ??
-    null,
+    allParentPages.find((p) =>
+      routeName.value.startsWith(p.label.toLowerCase()),
+    ) ?? null,
 );
 const parentLabel = computed(() => parentPage.value?.label ?? "");
 const parentTo = computed(() => parentPage.value?.to ?? "/");
@@ -205,6 +237,7 @@ const parentTo = computed(() => parentPage.value?.to ?? "/");
 const subLabel = computed(() => {
   if (isWorkRoute.value) return activeCategoryName.value ?? "All";
   if (routeName.value === "about") return activeSectionLabel.value;
+  if (routeName.value === "logs-slug") return logTitle.value;
   return null;
 });
 
@@ -254,11 +287,13 @@ function onPanelLeave(el: Element, done: () => void) {
           <NuxtLink :to="parentTo" class="sticky-header__crumb">
             <Text size="caption-1">{{ parentLabel }}</Text>
           </NuxtLink>
-          <span v-if="subLabel" class="sticky-header__sep" aria-hidden="true">/</span>
-          <span class="sticky-header__sub">
-            <Text size="caption-1">{{ subLabel }}</Text>
-            <Text v-if="subCount" size="caption-1" color="dimmer">{{ subCount }}</Text>
-          </span>
+          <ClientOnly>
+            <span v-if="subLabel" class="sticky-header__sep" aria-hidden="true">/</span>
+            <span class="sticky-header__sub">
+              <Text size="caption-1">{{ subLabel }}</Text>
+              <Text v-if="subCount" size="caption-1" color="dimmer">{{ subCount }}</Text>
+            </span>
+          </ClientOnly>
         </nav>
         <span
           class="sticky-header__menu-label"
@@ -269,10 +304,7 @@ function onPanelLeave(el: Element, done: () => void) {
       </div>
 
       <div class="sticky-header__bar-right">
-        <div
-          v-if="isWorkRoute"
-          class="sticky-header__bar-filters"
-        >
+        <div v-if="isWorkRoute" class="sticky-header__bar-filters">
           <BaseSelect
             variant="text"
             dropdown-align="left"
@@ -322,6 +354,7 @@ function onPanelLeave(el: Element, done: () => void) {
                 <NuxtLink
                   :to="page.to"
                   class="sticky-header__link"
+                  :class="{ 'is-active': routeName.startsWith(page.label.toLowerCase()) }"
                   @click="closePanel"
                 >
                   <Text>{{ page.label }}</Text>
@@ -401,8 +434,13 @@ function onPanelLeave(el: Element, done: () => void) {
                     "
                   >
                     <Text>{{ cat.name }}</Text>
-                    <span v-if="artifactCountByCategory[cat.slug.current]" class="sticky-header__count">
-                      <Text color="dimmer">{{ artifactCountByCategory[cat.slug.current] }}</Text>
+                    <span
+                      v-if="artifactCountByCategory[cat.slug.current]"
+                      class="sticky-header__count"
+                    >
+                      <Text color="dimmer">{{
+                        artifactCountByCategory[cat.slug.current]
+                      }}</Text>
                     </span>
                   </a>
                 </NuxtLink>
@@ -419,6 +457,13 @@ function onPanelLeave(el: Element, done: () => void) {
                   <Text size="caption-1">{{ filter }}</Text>
                 </button>
               </li>
+            </ul>
+
+            <!-- Log detail: meta -->
+            <ul v-else-if="routeName === 'logs-slug'" class="sticky-header__col">
+              <li><Text size="caption-1" style="color: var(--foreground-quaternary)">Jordan Egstad</Text></li>
+              <li><Text size="caption-1" style="color: var(--foreground-quaternary)">{{ logMeta?.date }}</Text></li>
+              <li v-if="logMeta?.mins"><Text size="caption-1" style="color: var(--foreground-quaternary)">{{ logMeta.mins }} min read</Text></li>
             </ul>
 
             <!-- Contact: external links -->
@@ -497,7 +542,7 @@ function onPanelLeave(el: Element, done: () => void) {
 .sticky-header__bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--grid-gap);
   padding: var(--unit-tiny) var(--grid-margin);
   background: var(--background-primary);
   border-bottom: 1px solid var(--border-primary);
@@ -734,5 +779,4 @@ function onPanelLeave(el: Element, done: () => void) {
 }
 
 // ── Transitions ───────────────────────────────────────────────────────────────
-
 </style>

@@ -76,6 +76,20 @@ export default defineNuxtConfig({
   },
   css: ["~/assets/styles/main.scss"],
   vite: {
+    optimizeDeps: {
+      include: [
+        '@egstad/detect-scroll',
+        '@heroicons/vue/24/solid',
+        '@sanity/client',
+        '@sanity/image-url',
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        'gsap',
+        'gsap/ScrollTrigger',
+        'hls.js',
+        'v-tweakpane',
+      ],
+    },
     css: {
       preprocessorOptions: {
         scss: {

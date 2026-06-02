@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type {Artifact} from '~/types/sanity'
+import type {MediaEmbedMedia} from '~/types/sanity'
 
 const props = defineProps<{
-  media: Artifact
+  media: MediaEmbedMedia
   size?: 'normal' | 'large'
 }>()
 
@@ -13,7 +13,7 @@ const imageProps = computed(() => {
   const dims = props.media.imageMeta?.dimensions
   return {
     src: props.media.imageUrl,
-    alt: props.media.alt || props.media.title,
+    alt: props.media.alt || props.media.title || '',
     width: dims?.width,
     height: dims?.height,
     external: true,

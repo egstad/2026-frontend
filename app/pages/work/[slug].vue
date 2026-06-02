@@ -19,7 +19,16 @@ const {data: media} = await useAsyncData(
       mediaType,
       image,
       alt,
-      caption,
+      caption[] {
+        ...,
+        markDefs[] {
+          ...,
+          _type == "internalLink" => {
+            ...,
+            "reference": reference->{ _type, slug, title }
+          }
+        }
+      },
       autoplay,
       dateTaken,
       locationName,

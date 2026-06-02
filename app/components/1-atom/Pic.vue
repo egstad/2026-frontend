@@ -183,6 +183,9 @@ const naturalHeight = ref(null);
  */
 const sanityAssetPath = computed(() => {
   if (!props.src?.includes("cdn.sanity.io")) return null;
+  // If the URL already has crop applied (rect= param), use it as-is via
+  // the external <img> path so NuxtImg doesn't strip the rect parameter.
+  if (props.src.includes("rect=")) return null;
   const pathWithoutParams = props.src.split("?")[0];
   const segments = pathWithoutParams.split("/");
   const filename = segments[segments.length - 1];

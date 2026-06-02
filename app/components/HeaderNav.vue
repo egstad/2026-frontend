@@ -98,7 +98,10 @@
               :key="opt.value"
               class="nav__link"
               :class="{ 'is-active': activeSort === opt.value }"
-              @click="setSort(opt.value as SortOption); close()"
+              @click="
+                setSort(opt.value as SortOption);
+                close();
+              "
             >
               {{ opt.label }}
             </button>
@@ -114,7 +117,10 @@
               :key="opt.value"
               class="nav__link"
               :class="{ 'is-active': activeView === opt.value }"
-              @click="setView(opt.value as ViewOption); close()"
+              @click="
+                setView(opt.value as ViewOption);
+                close();
+              "
             >
               {{ opt.label }}
             </button>
@@ -148,6 +154,7 @@ const { activeSort, activeView, setSort, setView } = useWorkFilters();
 const pages: Page[] = [
   { label: "Work", to: "/work" },
   { label: "About", to: "/about" },
+  { label: "Logs", to: "/logs" },
   { label: "Contact", to: "/contact" },
 ];
 
@@ -171,7 +178,7 @@ const currentSections = computed<Section[]>(() => {
 });
 
 const isWorkRoute = computed(
-  () => routeName.value === "work" || routeName.value === "work-index"
+  () => routeName.value === "work" || routeName.value === "work-index",
 );
 
 const sortOptions = [

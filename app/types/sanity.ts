@@ -54,11 +54,23 @@ export interface VideoMetadata {
   aspectRatio?: string // Mux returns as "16:9" string format
 }
 
-export interface PortableTextMarkDef {
+export interface PortableTextMarkDefExternal {
   _key: string
-  _type: string
-  href?: string
+  _type: 'link'
+  href: string
 }
+
+export interface PortableTextMarkDefInternal {
+  _key: string
+  _type: 'internalLink'
+  reference: {
+    _type: 'page' | 'log' | 'artifact'
+    slug: {current: string}
+    title: string
+  }
+}
+
+export type PortableTextMarkDef = PortableTextMarkDefExternal | PortableTextMarkDefInternal
 
 export interface PortableTextSpanNode {
   _type: 'span'
@@ -71,12 +83,26 @@ export interface PortableTextBlock {
   _type: 'block'
   _key?: string
   style?: string
+  listItem?: 'bullet' | 'number'
+  level?: number
   children?: PortableTextSpanNode[]
   markDefs?: PortableTextMarkDef[]
 }
 
-export interface Artifact {
+export interface MediaEmbedMedia {
+  mediaType: 'image' | 'video'
+  alt?: string
+  title?: string
+  imageUrl?: string
+  imageMeta?: ImageMetadata
+  muxPlaybackId?: string
+  videoMeta?: VideoMetadata
+  autoplay?: boolean
+}
+
+export interface Artifact extends MediaEmbedMedia {
   _id: string
+  _key?: string
   _type: 'artifact'
   _createdAt?: string
   title: string
@@ -135,13 +161,46 @@ export interface Portrait {
   muxPlaybackId?: string
 }
 
+export type LogMediaSize = 'small' | 'default' | 'large' | 'full'
+
+export interface LogInlineMedia extends MediaEmbedMedia {
+  _type: 'media'
+  _key: string
+  size?: LogMediaSize
+  caption?: PortableTextBlock[]
+  // Raw image object — needed to apply crop/hotspot via urlFor()
+  image?: SanityImage & { crop?: Record<string, number>; hotspot?: Record<string, number> }
+}
+
+export interface LogArtifactRef {
+  _type: 'artifactRef'
+  _key: string
+  size?: LogMediaSize
+  artifact?: Artifact
+}
+
+export interface LogGalleryItem extends MediaEmbedMedia {
+  _type: 'artifact' | 'galleryMedia'
+  _key?: string
+  caption?: PortableTextBlock[]
+}
+
+export type LogGallerySize = 'small' | 'large'
+
+export interface LogGallery {
+  _type: 'gallery'
+  _key: string
+  size?: LogGallerySize
+  items?: LogGalleryItem[]
+}
+
 export interface Log {
   _id: string
   _type: 'log'
   title: string
   slug: {current: string}
   date: string
-  content?: any[]
+  content?: (PortableTextBlock | LogArtifactRef | LogInlineMedia | LogGallery)[]
 }
 
 /** `_type == "page"` — fields match `useSanityPageSeo` GROQ projection */

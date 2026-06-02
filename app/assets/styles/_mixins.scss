@@ -87,7 +87,7 @@
   }
 }
 
-@mixin fluid($property, $sizeInPixels, $breakpointInPixels: $ultrawide) {
+@mixin fluid($property, $sizeInPixels, $breakpointInPixels) {
   @media (min-width: $breakpointInPixels) {
     #{$property}: calc-vw($sizeInPixels, $breakpointInPixels);
   }

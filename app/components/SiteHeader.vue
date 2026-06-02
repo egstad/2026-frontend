@@ -4,7 +4,11 @@
     <Column span-mobile="6" span-tablet="3" span-laptop="3" span-desktop="2">
       <ul class="nav-col">
         <li v-for="page in pages" :key="page.to">
-          <NuxtLink :to="page.to" class="nav-link">
+          <NuxtLink
+            :to="page.to"
+            class="nav-link"
+            :class="{ 'is-active': routeName.startsWith(page.label.toLowerCase()) }"
+          >
             <Text>{{ page.label }}</Text>
           </NuxtLink>
         </li>
@@ -94,8 +98,13 @@
                 <Text>{{ cat.name }}</Text>
               </a>
             </NuxtLink>
-            <span v-if="artifactCountByCategory[cat.slug?.current]" class="nav-count">
-              <Text color="dimmer">({{ artifactCountByCategory[cat.slug?.current] }})</Text>
+            <span
+              v-if="artifactCountByCategory[cat.slug?.current]"
+              class="nav-count"
+            >
+              <Text color="dimmer"
+                >({{ artifactCountByCategory[cat.slug?.current] }})</Text
+              >
             </span>
           </li>
         </ul>
@@ -116,6 +125,13 @@
               <Text size="caption-1">{{ filter }}</Text>
             </button>
           </li>
+        </ul>
+
+        <!-- Log detail: meta -->
+        <ul v-else-if="visibleRoute === 'logs-slug'" class="nav-col">
+          <li><Text style="color: var(--foreground-quaternary)">Jordan Egstad</Text></li>
+          <li><Text style="color: var(--foreground-quaternary)">{{ logMeta?.date }}</Text></li>
+          <li v-if="logMeta?.mins"><Text style="color: var(--foreground-quaternary)">{{ logMeta.mins }} min read</Text></li>
         </ul>
 
         <!-- Contact: external links -->
@@ -173,8 +189,9 @@ import { useEggMode } from "~/composables/useEggMode";
 import { useWorkCategories } from "~/composables/useWorkCategories";
 import { useWorkFilters } from "~/composables/useWorkFilters";
 import { categoryFromQuery } from "~/utils/workQuery";
+import { formatDate } from "~/utils/formatDate";
 import type { SortOption, ViewOption } from "~/utils/workQuery";
-import type { Artifact } from "~/types/sanity";
+import type { Artifact, Log, PortableTextBlock } from "~/types/sanity";
 
 interface Section {
   label: string;
@@ -249,6 +266,7 @@ const workAllSelected = computed(() => activeCategory.value === undefined);
 const pages = [
   { label: "Work", to: "/work" },
   { label: "About", to: "/about" },
+  { label: "Logs", to: "/logs" },
   { label: "Contact", to: "/contact" },
 ];
 
@@ -266,6 +284,26 @@ const aboutSections: Section[] = [
 ];
 
 const logsFilters = ["All", "Design", "Code", "Writing"];
+
+const nuxtApp = useNuxtApp();
+const logMeta = computed(() => {
+  if (routeName.value !== "logs-slug") return null;
+  const slug = Array.isArray(route.params.slug) ? route.params.slug[0] : route.params.slug;
+  const log = (nuxtApp.payload.data[`log-${slug}`] as Log | null | undefined) ?? null;
+  if (!log) return null;
+  let words = 0;
+  for (const block of log.content ?? []) {
+    if (block._type === "block") {
+      for (const child of (block as PortableTextBlock).children ?? []) {
+        if (child.text) words += child.text.trim().split(/\s+/).filter(Boolean).length;
+      }
+    }
+  }
+  return {
+    date: formatDate(log.date),
+    mins: words ? Math.ceil(words / 200) : null,
+  };
+});
 
 const contactLinks = [
   { label: "Email", href: "mailto:hello@egstad.com" },
@@ -346,7 +384,9 @@ watch(routeName, async (newRoute) => {
 
   // Fade out subnav items while the page leave transition runs
   await new Promise<void>((resolve) => {
-    gsap.to(getItems(), {
+    const items = getItems();
+    if (!items.length) { resolve(); return; }
+    gsap.to(items, {
       opacity: 0,
       duration: 0.1,
       stagger: 0.025,
@@ -358,7 +398,8 @@ watch(routeName, async (newRoute) => {
   visibleRoute.value = newRoute;
 
   nextTick(() => {
-    gsap.set(getItems(), { opacity: 0, y: 0 });
+    const items = getItems();
+    if (items.length) gsap.set(items, { opacity: 0, y: 0 });
 
     // Lock height at current value until page:leave-complete fires
     if (subnavEl.value) {
