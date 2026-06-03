@@ -194,13 +194,37 @@ export interface LogGallery {
   items?: LogGalleryItem[]
 }
 
+export type LogKind = 'long-form' | 'short-form'
+
+export interface LogAsset extends MediaEmbedMedia {
+  mediaType: 'image' | 'video' | 'youtube'
+  youtubeUrl?: string
+  image?: SanityImage & { crop?: Record<string, number>; hotspot?: Record<string, number> }
+}
+
+export interface LogYouTube {
+  _type: 'youtube'
+  _key: string
+  url: string
+  size?: LogMediaSize
+  caption?: PortableTextBlock[]
+}
+
 export interface Log {
   _id: string
   _type: 'log'
+  kind?: LogKind
   title: string
   slug: {current: string}
   date: string
-  content?: (PortableTextBlock | LogArtifactRef | LogInlineMedia | LogGallery)[]
+  excerpt?: string
+  categories?: Category[]
+  tags?: Tag[]
+  // short-form
+  asset?: LogAsset
+  body?: PortableTextBlock[]
+  // long-form
+  content?: (PortableTextBlock | LogArtifactRef | LogInlineMedia | LogGallery | LogYouTube)[]
 }
 
 /** `_type == "page"` — fields match `useSanityPageSeo` GROQ projection */

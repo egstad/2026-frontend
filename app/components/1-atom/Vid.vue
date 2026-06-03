@@ -442,7 +442,7 @@ onUnmounted(() => {
 
     <!-- Video overlay controls -->
     <div
-      v-if="hasAudio || hasCaptions"
+      v-if="effectiveControls && (hasAudio || hasCaptions)"
       class="vid-controls"
       :class="{ 'vid-controls--visible': controlsVisible }"
     >

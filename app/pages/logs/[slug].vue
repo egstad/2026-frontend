@@ -1,15 +1,6 @@
 <script setup lang="ts">
 import { sanityClient, urlFor } from "~/utils/sanity";
-import { formatDate } from "~/utils/formatDate";
-import type {
-  Log,
-  LogArtifactRef,
-  LogGallery,
-  LogGallerySize,
-  LogInlineMedia,
-  LogMediaSize,
-  PortableTextBlock,
-} from "~/types/sanity";
+import type { Log, LogAsset } from "~/types/sanity";
 import PageSetup from "~/composables/PageSetup";
 import pageTransitionDefault from "~/assets/scripts/pages/transitionDefault";
 
@@ -27,6 +18,28 @@ const { data: log } = await useAsyncData(`log-${route.params.slug}`, () =>
       title,
       slug,
       date,
+      "categories": categories[]->{ _id, name, slug },
+      "tags": tags[]->{ _id, name, slug },
+      asset {
+        mediaType,
+        youtubeUrl,
+        autoplay,
+        alt,
+        "imageUrl": image.asset->url,
+        "imageMeta": { "dimensions": image.asset->metadata.dimensions },
+        "muxPlaybackId": video.asset->playbackId,
+        image { crop, hotspot, asset }
+      },
+      body[] {
+        ...,
+        markDefs[] {
+          ...,
+          _type == "internalLink" => {
+            ...,
+            "reference": reference->{ _type, slug, title }
+          }
+        }
+      },
       content[] {
         ...,
         _type == "artifactRef" => {
@@ -110,6 +123,19 @@ const { data: log } = await useAsyncData(`log-${route.params.slug}`, () =>
             }
           }
         },
+        _type == "youtube" => {
+          ...,
+          caption[] {
+            ...,
+            markDefs[] {
+              ...,
+              _type == "internalLink" => {
+                ...,
+                "reference": reference->{ _type, slug, title }
+              }
+            }
+          }
+        },
         markDefs[] {
           ...,
           _type == "internalLink" => {
@@ -132,126 +158,14 @@ PageSetup({
   seoMeta: { title: log.value?.title || "Log" },
 });
 
-// Maps a media size to Column props
-function mediaColumns(size?: LogMediaSize) {
-  switch (size) {
-    case "small":
-      return {
-        spanMobile: "6",
-        startMobile: "4",
-        spanTablet: "4",
-        startTablet: "3",
-        spanLaptop: "4",
-        startLaptop: "5",
-        spanDesktop: "2",
-        startDesktop: "6",
-      };
-    case "large":
-      return {
-        spanTablet: "12",
-        startLaptop: "2",
-        spanLaptop: "10",
-        startDesktop: "3",
-        spanDesktop: "8",
-      };
-    case "full":
-      return { span: "12" };
-    default:
-      return {
-        spanTablet: "9",
-        startLaptop: "3",
-        spanLaptop: "8",
-        startDesktop: "4",
-        spanDesktop: "6",
-      };
-  }
+function getYouTubeId(url: string): string | null {
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+  return match?.[1] ?? null
 }
 
-function asGallery(block: unknown): LogGallery {
-  return block as LogGallery;
+function resolvedAssetImageUrl(asset: LogAsset): string | undefined {
+  return asset.image ? urlFor(asset.image).url() : asset.imageUrl
 }
-
-// 4+ items → full grid width (padding preserved — no grid--full)
-// small = text column, large = wide media column
-function galleryColumns(size?: LogGallerySize, count = 0) {
-  if (count >= 4) return { span: "12" };
-  return size === "large"
-    ? {
-        spanTablet: "12",
-        startLaptop: "2",
-        spanLaptop: "10",
-        startDesktop: "3",
-        spanDesktop: "8",
-      }
-    : {
-        spanTablet: "9",
-        startLaptop: "3",
-        spanLaptop: "8",
-        startDesktop: "4",
-        spanDesktop: "6",
-      };
-}
-
-function isEmptyParagraph(block: unknown): boolean {
-  const b = block as PortableTextBlock;
-  return b._type === "block" && !b.children?.some((c) => c.text?.trim());
-}
-
-// Group consecutive list items into { type: 'list' } groups so we can
-// wrap them in <ul> / <ol>. All other blocks pass through as-is.
-type LogBlock = NonNullable<Log["content"]>[number];
-type ContentGroup =
-  | { type: "block"; block: LogBlock; key: string }
-  | {
-      type: "list";
-      listType: "bullet" | "number";
-      items: PortableTextBlock[];
-      key: string;
-    };
-
-const processedContent = computed<ContentGroup[]>(() => {
-  const result: ContentGroup[] = [];
-  for (const block of log.value?.content ?? []) {
-    const b = block as PortableTextBlock;
-    if (b._type === "block" && b.listItem) {
-      const last = result[result.length - 1];
-      if (last?.type === "list" && last.listType === b.listItem) {
-        last.items.push(b);
-      } else {
-        result.push({
-          type: "list",
-          listType: b.listItem,
-          items: [b],
-          key: b._key ?? `list-${result.length}`,
-        });
-      }
-    } else {
-      // Strip empty paragraphs — CSS spacing handles rhythm, not empty blocks
-      if (isEmptyParagraph(block)) continue;
-      result.push({
-        type: "block",
-        block,
-        key: (block as any)._key ?? `block-${result.length}`,
-      });
-    }
-  }
-  return result;
-});
-
-const readingStats = computed(() => {
-  let words = 0;
-  for (const block of log.value?.content ?? []) {
-    if (block._type === "block") {
-      for (const child of (block as PortableTextBlock).children ?? []) {
-        if (child.text)
-          words += child.text.trim().split(/\s+/).filter(Boolean).length;
-      }
-    }
-  }
-  if (!words) return null;
-  const mins = Math.ceil(words / 200);
-  return { words, mins };
-});
 </script>
 
 <template>
@@ -259,299 +173,111 @@ const readingStats = computed(() => {
     <!-- Header -->
     <Grid class="log-header">
       <Column
+        start-tablet="4"
         span-tablet="9"
-        start-laptop="3"
-        span-laptop="8"
-        start-desktop="4"
-        span-desktop="6"
+        start-laptop="4"
+        span-laptop="9"
+        start-desktop="3"
+        span-desktop="8"
       >
-        <Space size="big" />
-        <Text is="h1" size="headline-1">{{ log.title }}</Text>
-        <Space size="tiny" />
-        <div class="log-meta">
-          <Text is="time" color="dimmer" size="caption-2">{{
-            formatDate(log.date)
-          }}</Text>
-          <template v-if="readingStats">
-            <Text color="dimmer" size="caption-2">•</Text>
-            <Text color="dimmer" size="caption-2"
-              >{{ readingStats.words.toLocaleString() }} words</Text
-            >
-            <Text color="dimmer" size="caption-2">•</Text>
-            <Text color="dimmer" size="caption-2"
-              >{{ readingStats.mins }} minutes</Text
-            >
-          </template>
+        <Text is="h1" class="my-big log-title" size="headline-1">{{
+          log.title
+        }}</Text>
+        <div v-if="log.categories?.length || log.tags?.length" class="log-taxonomy">
+          <NuxtLink
+            v-for="cat in log.categories"
+            :key="cat._id"
+            :to="`/logs?c=${cat.slug.current}`"
+            class="log-taxonomy__tag log-taxonomy__tag--category"
+          ><Text size="caption-2">{{ cat.name }}</Text></NuxtLink>
+          <NuxtLink
+            v-for="tag in log.tags"
+            :key="tag._id"
+            :to="`/logs?t=${tag.slug.current}`"
+            class="log-taxonomy__tag"
+          ><Text size="caption-2" color="dimmer">{{ tag.name }}</Text></NuxtLink>
         </div>
       </Column>
     </Grid>
 
-    <!-- Content -->
-    <template v-if="log.content">
-      <template v-for="group in processedContent" :key="group.key">
-        <!-- List (ul/ol) -->
-        <Grid
-          v-if="group.type === 'list'"
-          class="block block--text block--list"
-        >
-          <Column
-            span-tablet="9"
-            start-laptop="3"
-            span-laptop="8"
-            start-desktop="4"
-            span-desktop="6"
-          >
-            <component
-              :is="group.listType === 'bullet' ? 'ul' : 'ol'"
-              class="portable-list"
-            >
-              <PortableTextBlock
-                v-for="item in group.items"
-                :key="item._key"
-                :block="item"
-                font="times-seven"
-              />
-            </component>
-          </Column>
-        </Grid>
-
-        <!-- Rich text -->
-        <Grid
-          v-else-if="
-            group.type === 'block' && (group.block as any)._type === 'block'
-          "
-          class="block block--text"
-        >
-          <Column
-            span-tablet="9"
-            start-laptop="3"
-            span-laptop="8"
-            start-desktop="4"
-            span-desktop="6"
-          >
-            <PortableTextBlock
-              :block="group.block as PortableTextBlock"
-              font="times-seven"
-            />
-          </Column>
-        </Grid>
-
-        <!-- Artifact reference (linked work) -->
-        <Grid
-          v-else-if="
-            group.type === 'block' &&
-            (group.block as any)._type === 'artifactRef'
-          "
-          :class="[
-            'block block--artifact',
-            { 'grid--full': (group.block as LogArtifactRef).size === 'full' },
-          ]"
-        >
-          <Column v-bind="mediaColumns((group.block as LogArtifactRef).size)">
-            <MediaEmbed
-              v-if="(group.block as LogArtifactRef).artifact"
-              :media="(group.block as LogArtifactRef).artifact!"
-            />
-          </Column>
-        </Grid>
-
-        <!-- Inline media (untethered image/video) -->
-        <Grid
-          v-else-if="
-            group.type === 'block' && (group.block as any)._type === 'media'
-          "
-          :class="[
-            'block block--media',
-            { 'grid--full': (group.block as LogInlineMedia).size === 'full' },
-          ]"
-        >
-          <Column v-bind="mediaColumns((group.block as LogInlineMedia).size)">
-            <figure>
-              <MediaEmbed
-                :media="{
-                  ...(group.block as LogInlineMedia),
-                  imageUrl: (group.block as LogInlineMedia).image
-                    ? urlFor((group.block as LogInlineMedia).image!).url()
-                    : (group.block as LogInlineMedia).imageUrl,
-                }"
-              />
-              <Text
-                is="figcaption"
-                size="caption-2"
-                color="dim"
-                v-if="(group.block as LogInlineMedia).caption?.length"
-              >
-                <template
-                  v-for="captionBlock in (group.block as LogInlineMedia)
-                    .caption"
-                  :key="captionBlock._key"
-                >
-                  <PortableTextSpan
-                    v-for="child in captionBlock.children"
-                    :key="child._key"
-                    :span="child"
-                    :markDefs="captionBlock.markDefs"
-                    size="caption-2"
-                  />
-                </template>
-              </Text>
-            </figure>
-          </Column>
-        </Grid>
-
-        <!-- Gallery -->
-        <Grid
-          v-else-if="
-            group.type === 'block' && (group.block as any)._type === 'gallery'
-          "
-          class="block block--gallery"
-        >
-          <Column
-            v-bind="
-              galleryColumns(
-                asGallery(group.block).size,
-                asGallery(group.block).items?.length ?? 0,
-              )
-            "
-          >
-            <LogGallery :gallery="asGallery(group.block)" />
-          </Column>
-        </Grid>
-      </template>
+    <!-- Short-form: asset + body -->
+    <template v-if="log.kind === 'short-form'">
+      <!-- Asset -->
+      <Grid v-if="log.asset" class="block block--media" :class="{ 'grid--full': false }">
+        <Column start-tablet="4" span-tablet="9" start-laptop="4" span-laptop="9" start-desktop="3" span-desktop="8">
+          <figure>
+            <!-- Image -->
+            <template v-if="log.asset.mediaType === 'image' || !log.asset.mediaType">
+              <MediaEmbed :media="{ ...log.asset, imageUrl: resolvedAssetImageUrl(log.asset) }" />
+            </template>
+            <!-- Video -->
+            <template v-else-if="log.asset.mediaType === 'video' && log.asset.muxPlaybackId">
+              <MediaEmbed :media="log.asset" />
+            </template>
+            <!-- YouTube -->
+            <template v-else-if="log.asset.mediaType === 'youtube' && log.asset.youtubeUrl && getYouTubeId(log.asset.youtubeUrl)">
+              <div class="youtube-embed">
+                <iframe
+                  :src="`https://www.youtube.com/embed/${getYouTubeId(log.asset.youtubeUrl!)}`"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                />
+              </div>
+            </template>
+          </figure>
+        </Column>
+      </Grid>
+      <!-- Body (rich text only) -->
+      <LogContent v-if="log.body?.length" :content="log.body as any" />
     </template>
+
+    <!-- Long-form: full content -->
+    <LogContent v-else-if="log.content" :content="log.content" />
   </article>
 </template>
 
 <style lang="scss" scoped>
 @use "~/assets/styles/global" as *;
 
-// ── Header ────────────────────────────────────────────────────────────────────
-
-.log-header {
-  padding-top: var(--unit-base);
-  margin-bottom: var(--unit-big);
+.log-title {
+  font-variation-settings: "wght" 450;
 }
 
-.log-meta {
+.youtube-embed {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radii-tiny);
+  overflow: hidden;
+
+  iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+}
+
+.log-taxonomy {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--unit-tinier);
+  margin-top: var(--unit-small);
 }
 
-// ── Block spacing ─────────────────────────────────────────────────────────────
-// Single source of truth: every block has a uniform trailing margin.
-// Media blocks use padding-block for symmetric breathing room — the math:
-//   above media = text.margin-bottom + media.padding-top
-//   below media = media.padding-bottom + media.margin-bottom
-//   both sides are identical → truly symmetric.
+.log-taxonomy__tag {
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border-primary);
+  padding: var(--unit-tiniest) var(--unit-tiny);
+  border-radius: var(--radii-tiny);
+  transition: border-color var(--transition-fast);
 
-.block {
-  margin-bottom: var(--unit-smaller);
-}
+  &:hover { border-color: var(--foreground-secondary); }
 
-// Heading text: extra space above, tighter below
-.block--text:has(h2) {
-  padding-block-start: var(--unit-bigger);
-  margin-bottom: var(--unit-tinier);
-}
-
-.block--text:has(h3) {
-  padding-block-start: var(--unit-small);
-  margin-bottom: var(--unit-tiniest);
-}
-
-.block--text:has(h2, h3) + .block--text:has(p) {
-  padding-block-start: var(--unit-tinier);
-}
-
-// Media + gallery: symmetric padding for equal breathing room on both sides
-.block--media,
-.block--artifact,
-.block--gallery {
-  padding-block: var(--unit-bigger);
-}
-
-// ── Blocks ────────────────────────────────────────────────────────────────────
-
-.block {
-  &--text {
-    .portable-list {
-      margin-left: var(--unit-smaller);
-      padding-left: var(--unit-small);
-
-      :deep(li) {
-        margin-bottom: var(--unit-tinier);
-      }
-    }
-
-    :deep(h2) {
-      font-family: "DBC Metaphor", Arial, Helvetica, sans-serif;
-    }
-
-    :deep(h3) {
-      font-family: "DBC Metaphor", Arial, Helvetica, sans-serif;
-      color: var(--foreground-secondary);
-    }
-
-    ul.portable-list {
-      list-style-type: disc;
-    }
-
-    ol.portable-list {
-      list-style: none;
-      counter-reset: list-counter;
-
-      :deep(li) {
-        counter-increment: list-counter;
-
-        &::before {
-          content: counter(list-counter, decimal-leading-zero);
-          font-family: "DBC Metaphor", sans-serif;
-          font-variant-numeric: tabular-nums;
-          color: var(--foreground-secondary);
-          letter-spacing: 0.04em;
-          margin-right: var(--unit-tiny);
-        }
-      }
-    }
-
-    :deep(blockquote) {
-      position: relative;
-      padding-inline: var(--unit-smaller);
-      border-left: 1px solid var(--border-primary);
-    }
-
-    code {
-      background: var(--background-secondary);
-      padding: 0.1em 0.3em;
-      border-radius: var(--radii-tiny);
-      font-size: 0.9em;
-    }
-  }
-
-  &--artifact,
-  &--media {
-    // :deep(.pic__image) {
-    //   width: auto !important;
-    //   height: auto !important;
-    //   max-width: min(90vh, 100%);
-    //   max-height: 90vh;
-    // }
-
-    // :deep(.vid-wrapper) {
-    //   max-width: min(90vh, 100%);
-    //   max-height: 90vh;
-    //   min-width: min(300px, 100%);
-    // }
-
-    :deep(figcaption) {
-      margin-top: var(--unit-tiny);
-    }
-
-    // Full-width: caption gets grid margin so text doesn't touch screen edges
-    &.grid--full :deep(figcaption) {
-      padding-left: var(--grid-margin);
-      padding-right: var(--grid-margin);
-    }
+  &--category {
+    border-color: var(--foreground-quaternary);
   }
 }
+
 </style>

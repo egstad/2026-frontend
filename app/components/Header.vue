@@ -30,8 +30,11 @@ watch(baseVisible, (val) => {
   }
 });
 
+const navHidden = ref(false);
+let navHideTimer: ReturnType<typeof setTimeout> | null = null;
+
 const isVisible = computed(
-  () => baseVisible.value && scrollY.value <= hideThreshold.value + 20,
+  () => !navHidden.value && baseVisible.value && scrollY.value <= hideThreshold.value + 20,
 );
 
 function onScroll() {
@@ -53,7 +56,10 @@ onMounted(() => {
   scrollY.value = window.scrollY;
   window.addEventListener("scroll", onScroll, { passive: true });
 });
-onUnmounted(() => window.removeEventListener("scroll", onScroll));
+onUnmounted(() => {
+  window.removeEventListener("scroll", onScroll);
+  if (navHideTimer) clearTimeout(navHideTimer);
+});
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
@@ -63,7 +69,15 @@ const rootEl = ref<HTMLElement | null>(null);
 const togglePanel = () => (panelOpen.value = !panelOpen.value);
 const closePanel = () => (panelOpen.value = false);
 
-watch(() => route.path, closePanel);
+watch(() => route.path, () => {
+  closePanel();
+  navHidden.value = true;
+  if (navHideTimer) clearTimeout(navHideTimer);
+  navHideTimer = setTimeout(() => {
+    navHidden.value = false;
+    navHideTimer = null;
+  }, 1000);
+});
 
 function onDocClick(e: MouseEvent) {
   if (rootEl.value && !rootEl.value.contains(e.target as Node)) closePanel();
@@ -175,7 +189,6 @@ const contactLinks = [
   { label: "LinkedIn", href: "https://linkedin.com/in/egstad" },
 ];
 
-const logsFilters = ["All", "Design", "Code", "Writing"];
 
 // ─── Breadcrumb ───────────────────────────────────────────────────────────────
 
@@ -219,6 +232,7 @@ const logMeta = computed(() => {
   }
   return {
     date: formatDate(log.date),
+    isoDate: log.date ? new Date(log.date).toISOString().split('T')[0] : null,
     mins: words ? Math.ceil(words / 200) : null,
   };
 });
@@ -447,24 +461,9 @@ function onPanelLeave(el: Element, done: () => void) {
               </li>
             </ul>
 
-            <!-- Logs: filters -->
-            <ul
-              v-else-if="routeName === 'logs' || routeName === 'logs-index'"
-              class="sticky-header__col"
-            >
-              <li v-for="filter in logsFilters" :key="filter">
-                <button class="sticky-header__link" disabled>
-                  <Text size="caption-1">{{ filter }}</Text>
-                </button>
-              </li>
-            </ul>
 
-            <!-- Log detail: meta -->
-            <ul v-else-if="routeName === 'logs-slug'" class="sticky-header__col">
-              <li><Text size="caption-1" style="color: var(--foreground-quaternary)">Jordan Egstad</Text></li>
-              <li><Text size="caption-1" style="color: var(--foreground-quaternary)">{{ logMeta?.date }}</Text></li>
-              <li v-if="logMeta?.mins"><Text size="caption-1" style="color: var(--foreground-quaternary)">{{ logMeta.mins }} min read</Text></li>
-            </ul>
+            <!-- Log detail: meta — shown in static header only, hidden here -->
+            <template v-else-if="routeName === 'logs-slug'" />
 
             <!-- Contact: external links -->
             <ul v-else-if="routeName === 'contact'" class="sticky-header__col">

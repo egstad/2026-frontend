@@ -651,9 +651,10 @@ async function copyLink() {
           type="button"
           size="small"
           variant="ghost"
+          aria-label="Close"
           @click="handleClose"
         >
-          Close
+          <Iconography name="close" aria-hidden="true" />
         </BaseButton>
       </div>
     </template>

@@ -59,6 +59,7 @@
             :key="child._key"
             :span="child"
             :markDefs="block.markDefs"
+            size="caption-2"
           />
         </template>
       </p>

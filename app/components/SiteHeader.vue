@@ -115,24 +115,21 @@
           class="nav-col"
         />
 
-        <!-- Logs: filters (FPO) -->
-        <ul
-          v-else-if="visibleRoute === 'logs' || visibleRoute === 'logs-index'"
-          class="nav-col"
-        >
-          <li v-for="filter in logsFilters" :key="filter">
-            <button class="nav-link" disabled>
-              <Text size="caption-1">{{ filter }}</Text>
-            </button>
-          </li>
-        </ul>
-
         <!-- Log detail: meta -->
-        <ul v-else-if="visibleRoute === 'logs-slug'" class="nav-col">
-          <li><Text style="color: var(--foreground-quaternary)">Jordan Egstad</Text></li>
-          <li><Text style="color: var(--foreground-quaternary)">{{ logMeta?.date }}</Text></li>
-          <li v-if="logMeta?.mins"><Text style="color: var(--foreground-quaternary)">{{ logMeta.mins }} min read</Text></li>
-        </ul>
+        <dl v-else-if="visibleRoute === 'logs-slug'" class="nav-col log-meta">
+          <div>
+            <dt class="sr-only">Author</dt>
+            <dd><Text style="color: var(--foreground-quaternary)">Jordan Egstad</Text></dd>
+          </div>
+          <div>
+            <dt class="sr-only">Published</dt>
+            <dd><Text is="time" :datetime="logMeta?.isoDate ?? undefined" style="color: var(--foreground-quaternary)">{{ logMeta?.date }}</Text></dd>
+          </div>
+          <div v-if="logMeta?.mins">
+            <dt class="sr-only">Reading time</dt>
+            <dd><Text style="color: var(--foreground-quaternary)">{{ logMeta.mins }} min read</Text></dd>
+          </div>
+        </dl>
 
         <!-- Contact: external links -->
         <ul v-else-if="visibleRoute === 'contact'" class="nav-col">
@@ -283,7 +280,6 @@ const aboutSections: Section[] = [
   { label: "Colophon", id: "colophon" },
 ];
 
-const logsFilters = ["All", "Design", "Code", "Writing"];
 
 const nuxtApp = useNuxtApp();
 const logMeta = computed(() => {
@@ -301,6 +297,7 @@ const logMeta = computed(() => {
   }
   return {
     date: formatDate(log.date),
+    isoDate: log.date ? new Date(log.date).toISOString().split('T')[0] : null,
     mins: words ? Math.ceil(words / 200) : null,
   };
 });
@@ -359,7 +356,7 @@ function setupObserver() {
 // ─── Subnav stagger animations ────────────────────────────────────────────────
 
 function getItems() {
-  return subnavEl.value?.querySelectorAll<HTMLElement>("li") ?? [];
+  return subnavEl.value?.querySelectorAll<HTMLElement>("li, dl > div") ?? [];
 }
 
 function animateIn() {
