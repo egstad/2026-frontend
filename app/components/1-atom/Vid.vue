@@ -519,8 +519,10 @@ onUnmounted(() => {
   width: 100%;
   max-height: 100%;
   min-height: 0;
-  /* When the parent gives a definite height (e.g. media cards), fill it; aspect-ratio is then ignored. */
-  height: 100%;
+  /* Default: size from aspect-ratio. Consumers that want to fill a
+     parent-defined height (media cards, lightbox) opt in with their own
+     :deep(.vid-wrapper) { height: 100% } override. */
+  height: auto;
   overflow: hidden;
   border-radius: var(--radii-tiny);
   background: var(--background-secondary);
