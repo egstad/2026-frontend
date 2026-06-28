@@ -7,7 +7,9 @@
           <NuxtLink
             :to="page.to"
             class="nav-link"
-            :class="{ 'is-active': routeName.startsWith(page.label.toLowerCase()) }"
+            :class="{
+              'is-active': routeName.startsWith(page.label.toLowerCase()),
+            }"
           >
             <Text>{{ page.label }}</Text>
           </NuxtLink>
@@ -15,12 +17,11 @@
         <ClientOnly>
           <li>
             <button
-              class="nav-link egg-btn"
-              :class="{ 'is-active': eggActive }"
-              @click="toggleEgg"
-              aria-label="Toggle easter egg mode"
+              class="nav-link"
+              @click="settingsOpen = true"
+              aria-haspopup="dialog"
             >
-              <Text>{{ eggActive ? "🍳" : "🥚" }}</Text>
+              <Text>Settings</Text>
             </button>
           </li>
         </ClientOnly>
@@ -69,9 +70,11 @@
                 <Text>All</Text>
               </a>
             </NuxtLink>
-            <span v-if="artifactTotal" class="nav-count">
-              <Text color="dimmer">({{ artifactTotal }})</Text>
-            </span>
+            <ClientOnly>
+              <span v-if="artifactTotal" class="nav-count">
+                <Text color="dimmer">({{ artifactTotal }})</Text>
+              </span>
+            </ClientOnly>
           </li>
           <li v-for="cat in workCategories" :key="cat._id" class="nav-item">
             <NuxtLink
@@ -98,14 +101,16 @@
                 <Text>{{ cat.name }}</Text>
               </a>
             </NuxtLink>
-            <span
-              v-if="artifactCountByCategory[cat.slug?.current]"
-              class="nav-count"
-            >
-              <Text color="dimmer"
-                >({{ artifactCountByCategory[cat.slug?.current] }})</Text
+            <ClientOnly>
+              <span
+                v-if="artifactCountByCategory[cat.slug?.current]"
+                class="nav-count"
               >
-            </span>
+                <Text color="dimmer"
+                  >({{ artifactCountByCategory[cat.slug?.current] }})</Text
+                >
+              </span>
+            </ClientOnly>
           </li>
         </ul>
 
@@ -119,15 +124,30 @@
         <dl v-else-if="visibleRoute === 'logs-slug'" class="nav-col log-meta">
           <div>
             <dt class="sr-only">Author</dt>
-            <dd><Text style="color: var(--foreground-quaternary)">Jordan Egstad</Text></dd>
+            <dd>
+              <Text style="color: var(--foreground-quaternary)"
+                >Jordan Egstad</Text
+              >
+            </dd>
           </div>
           <div>
             <dt class="sr-only">Published</dt>
-            <dd><Text is="time" :datetime="logMeta?.isoDate ?? undefined" style="color: var(--foreground-quaternary)">{{ logMeta?.date }}</Text></dd>
+            <dd>
+              <Text
+                is="time"
+                :datetime="logMeta?.isoDate ?? undefined"
+                style="color: var(--foreground-quaternary)"
+                >{{ logMeta?.date }}</Text
+              >
+            </dd>
           </div>
           <div v-if="logMeta?.mins">
             <dt class="sr-only">Reading time</dt>
-            <dd><Text style="color: var(--foreground-quaternary)">{{ logMeta.mins }} min read</Text></dd>
+            <dd>
+              <Text style="color: var(--foreground-quaternary)"
+                >{{ logMeta.mins }} min read</Text
+              >
+            </dd>
           </div>
         </dl>
 
@@ -178,11 +198,12 @@
       </div>
     </Column>
   </Grid>
+
+  <SiteSettings v-model="settingsOpen" />
 </template>
 
 <script setup lang="ts">
 import { gsap } from "gsap";
-import { useEggMode } from "~/composables/useEggMode";
 import { useWorkCategories } from "~/composables/useWorkCategories";
 import { useWorkFilters } from "~/composables/useWorkFilters";
 import { categoryFromQuery } from "~/utils/workQuery";
@@ -196,14 +217,10 @@ interface Section {
 }
 
 const route = useRoute();
-const { isActive: eggActive, toggle: toggleEgg } = useEggMode();
+const settingsOpen = ref(false);
 const { data: rawWorkCategories } = await useWorkCategories();
 const workCategories = computed(() =>
-  (rawWorkCategories.value ?? []).filter((c) => {
-    if (!c?.slug?.current) return false;
-    if (!artifacts.value) return true;
-    return !!artifactCountByCategory.value[c.slug.current];
-  }),
+  (rawWorkCategories.value ?? []).filter((c) => !!c?.slug?.current),
 );
 const { activeSort, activeView, setSort, setView } = useWorkFilters();
 const activeSection = ref("");
@@ -280,24 +297,27 @@ const aboutSections: Section[] = [
   { label: "Colophon", id: "colophon" },
 ];
 
-
 const nuxtApp = useNuxtApp();
 const logMeta = computed(() => {
   if (routeName.value !== "logs-slug") return null;
-  const slug = Array.isArray(route.params.slug) ? route.params.slug[0] : route.params.slug;
-  const log = (nuxtApp.payload.data[`log-${slug}`] as Log | null | undefined) ?? null;
+  const slug = Array.isArray(route.params.slug)
+    ? route.params.slug[0]
+    : route.params.slug;
+  const log =
+    (nuxtApp.payload.data[`log-${slug}`] as Log | null | undefined) ?? null;
   if (!log) return null;
   let words = 0;
   for (const block of log.content ?? []) {
     if (block._type === "block") {
       for (const child of (block as PortableTextBlock).children ?? []) {
-        if (child.text) words += child.text.trim().split(/\s+/).filter(Boolean).length;
+        if (child.text)
+          words += child.text.trim().split(/\s+/).filter(Boolean).length;
       }
     }
   }
   return {
     date: formatDate(log.date),
-    isoDate: log.date ? new Date(log.date).toISOString().split('T')[0] : null,
+    isoDate: log.date ? new Date(log.date).toISOString().split("T")[0] : null,
     mins: words ? Math.ceil(words / 200) : null,
   };
 });
@@ -382,7 +402,10 @@ watch(routeName, async (newRoute) => {
   // Fade out subnav items while the page leave transition runs
   await new Promise<void>((resolve) => {
     const items = getItems();
-    if (!items.length) { resolve(); return; }
+    if (!items.length) {
+      resolve();
+      return;
+    }
     gsap.to(items, {
       opacity: 0,
       duration: 0.1,
@@ -509,17 +532,6 @@ onUnmounted(() => {
   }
 }
 
-.egg-btn {
-  opacity: 0.35;
-  transition: opacity 0.15s ease;
-
-  &:hover,
-  &.is-active {
-    opacity: 1;
-    color: var(--foreground-quaternary);
-  }
-}
-
 .work-filters-col {
   display: flex;
   align-items: flex-start;
@@ -527,7 +539,7 @@ onUnmounted(() => {
 }
 
 .work-filters {
-  margin-top: var(--unit-small);
+  margin-top: var(--unit-bigger);
   display: grid;
   gap: var(--grid-gap);
   width: 100%;

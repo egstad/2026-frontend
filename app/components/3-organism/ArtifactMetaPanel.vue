@@ -6,23 +6,26 @@ defineProps<{ media: Artifact }>();
 </script>
 
 <template>
-  <Text size="caption-2" class="meta-panel">
-    <h2 class="meta-panel__title">{{ media.title }}</h2>
-
-    <p v-if="media.caption?.length" class="meta-panel__caption">
-      <template v-for="block in media.caption" :key="block._key">
-        <PortableTextSpan
-          v-for="child in block.children"
-          :key="child._key"
-          :span="child"
-          :markDefs="block.markDefs"
-        />
-      </template>
-    </p>
+  <div class="meta-panel">
+    <div class="meta-panel__header">
+      <h2 class="meta-panel__title t-body-1">{{ media.title }}</h2>
+      <p v-if="media.caption?.length" class="meta-panel__caption t-body-2">
+        <template v-for="block in media.caption" :key="block._key">
+          <PortableTextSpan
+            v-for="child in block.children"
+            :key="child._key"
+            :span="child"
+            :markDefs="block.markDefs"
+          />
+        </template>
+      </p>
+    </div>
 
     <dl
       v-if="
         media.dateTaken ||
+        media.categories?.length ||
+        media.tags?.length ||
         media.locationName ||
         media.camera ||
         media.lens ||
@@ -31,11 +34,25 @@ defineProps<{ media: Artifact }>();
         media.shutterSpeed ||
         media.iso
       "
-      class="meta-panel__grid"
+      class="meta-panel__grid t-caption-1"
     >
       <div v-if="media.dateTaken" class="meta-panel__row">
         <dt>Date</dt>
         <dd>{{ formatDate(media.dateTaken, { long: true }) }}</dd>
+      </div>
+      <div v-if="media.categories?.length || media.tags?.length" class="meta-panel__row">
+        <dt>Filed as</dt>
+        <dd class="meta-panel__tags">
+          <span
+            v-for="cat in media.categories"
+            :key="cat._id"
+            class="meta-panel__tag meta-panel__tag--cat"
+            >{{ cat.name }}</span
+          >
+          <span v-for="tag in media.tags" :key="tag._id" class="meta-panel__tag">{{
+            tag.name
+          }}</span>
+        </dd>
       </div>
       <div v-if="media.locationName" class="meta-panel__row">
         <dt>Location</dt>
@@ -43,19 +60,17 @@ defineProps<{ media: Artifact }>();
       </div>
       <div v-if="media.camera" class="meta-panel__row">
         <dt>Camera</dt>
-        <dd>{{ media.camera }}</dd>
+        <dd>{{ media.camera.name ?? JSON.stringify(media.camera) }}</dd>
       </div>
       <div v-if="media.lens" class="meta-panel__row">
         <dt>Lens</dt>
-        <dd>{{ media.lens }}</dd>
+        <dd>{{ media.lens.name ?? JSON.stringify(media.lens) }}</dd>
       </div>
       <div
-        v-if="
-          media.focalLength || media.aperture || media.shutterSpeed || media.iso
-        "
+        v-if="media.focalLength || media.aperture || media.shutterSpeed || media.iso"
         class="meta-panel__row"
       >
-        <dt>Settings</dt>
+        <dt>Camera settings</dt>
         <dd>
           {{
             [
@@ -70,50 +85,42 @@ defineProps<{ media: Artifact }>();
         </dd>
       </div>
     </dl>
-
-    <div
-      v-if="media.categories?.length || media.tags?.length"
-      class="meta-panel__tags"
-    >
-      <span
-        v-for="cat in media.categories"
-        :key="cat._id"
-        class="meta-panel__tag meta-panel__tag--cat"
-        >{{ cat.name }}</span
-      >
-      <span v-for="tag in media.tags" :key="tag._id" class="meta-panel__tag">{{
-        tag.name
-      }}</span>
-    </div>
-  </Text>
+  </div>
 </template>
 
 <style lang="scss" scoped>
-// All text is caption-2 throughout — matching the feed card's text scale.
 .meta-panel {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+}
+
+.meta-panel__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--unit-smaller);
+  padding-top: var(--unit-bigger);
 }
 
 .meta-panel__title {
   font-weight: normal;
   margin: 0;
-  line-height: 1.4;
   color: var(--foreground-primary);
 }
 
 .meta-panel__caption {
   color: var(--foreground-secondary);
   margin: 0;
-  line-height: 1.4;
 }
 
 .meta-panel__grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--unit-small);
-  margin-top: 2px;
+  flex-direction: column;
+  gap: var(--unit-smaller);
+  padding-top: var(--unit-bigger);
+  padding-bottom: var(--unit-bigger);
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
 }
 
 .meta-panel__row {
@@ -122,9 +129,7 @@ defineProps<{ media: Artifact }>();
   gap: 0;
 
   dt {
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--foreground-tertiary);
+    color: var(--foreground-secondary);
   }
 
   dd {
@@ -137,18 +142,17 @@ defineProps<{ media: Artifact }>();
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--unit-tinier);
-  margin-top: 2px;
 }
 
 .meta-panel__tag {
-  color: var(--foreground-tertiary);
+  color: var(--foreground-primary);
 
   &::before {
     content: "#";
   }
 
   &--cat {
-    color: var(--foreground-secondary);
+    color: var(--foreground-primary);
   }
 }
 </style>

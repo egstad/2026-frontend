@@ -5,6 +5,7 @@ export const useAppStore = defineStore("app", {
     appHasLoaded: false as boolean | false,
     routeIsTransitioning: true as boolean | true,
     theme: "dark" as "dark" | "light",
+    themeOverride: "system" as "system" | "light" | "dark" | "geocities",
     autoplayVideos: true as boolean,
   }),
   actions: {
@@ -18,8 +19,14 @@ export const useAppStore = defineStore("app", {
       this.theme = this.theme === "dark" ? "light" : "dark";
       document.documentElement.dataset.theme = this.theme;
     },
+    setThemeOverride(val: "system" | "light" | "dark" | "geocities") {
+      this.themeOverride = val;
+    },
     toggleAutoplayVideos() {
       this.autoplayVideos = !this.autoplayVideos;
+    },
+    setAutoplayVideos(val: boolean) {
+      this.autoplayVideos = val;
     },
   },
 });

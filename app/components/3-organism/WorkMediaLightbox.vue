@@ -55,9 +55,7 @@ function computeLightboxImgSrc(artifact: Artifact | null): string | null {
   const dpr = Math.min(Math.ceil(window.devicePixelRatio || 1), 3);
   const physicalW = Math.round(cssW * dpr);
   const targetW =
-    SRCSET_WIDTHS.find((w) => w >= physicalW) ??
-    SRCSET_WIDTHS.at(-1) ??
-    4000;
+    SRCSET_WIDTHS.find((w) => w >= physicalW) ?? SRCSET_WIDTHS.at(-1) ?? 4000;
 
   return sanityImageUrl(artifact.imageUrl, { width: targetW });
 }
@@ -139,7 +137,8 @@ function applyFlipDimensions(
   maxNaturalH?: number,
 ) {
   if (!import.meta.client || !ar) return;
-  const sw = stageW ?? (stageEl.getBoundingClientRect().width || window.innerWidth);
+  const sw =
+    stageW ?? (stageEl.getBoundingClientRect().width || window.innerWidth);
   const vh = window.innerHeight;
   if (!sw) return;
 
@@ -152,8 +151,10 @@ function applyFlipDimensions(
   // Cap at original asset dimensions so images are never upscaled past their
   // source resolution (no cap for video — HLS ABR handles quality).
   if (maxNaturalW !== undefined || maxNaturalH !== undefined) {
-    const scaleByW = maxNaturalW !== undefined && w > maxNaturalW ? maxNaturalW / w : 1;
-    const scaleByH = maxNaturalH !== undefined && h > maxNaturalH ? maxNaturalH / h : 1;
+    const scaleByW =
+      maxNaturalW !== undefined && w > maxNaturalW ? maxNaturalW / w : 1;
+    const scaleByH =
+      maxNaturalH !== undefined && h > maxNaturalH ? maxNaturalH / h : 1;
     const scale = Math.min(scaleByW, scaleByH);
     if (scale < 1) {
       w = Math.round(w * scale);
@@ -174,7 +175,10 @@ function clearFlipDimensions(stageEl: HTMLElement | null) {
 
 /** Original pixel dimensions of an image asset for the natural-size cap.
  *  Returns undefined for video — HLS ABR selects the right quality level. */
-function mediaNaturalDimensions(artifact: Artifact | null): { w?: number; h?: number } {
+function mediaNaturalDimensions(artifact: Artifact | null): {
+  w?: number;
+  h?: number;
+} {
   if (!artifact || artifact.mediaType === "video") return {};
   const d = artifact.imageMeta?.dimensions;
   return { w: d?.width, h: d?.height };
@@ -324,14 +328,25 @@ async function runOpenSequence() {
         gsap.fromTo(
           [toolbarRef.value, detailsRef.value],
           { opacity: 0 },
-          { opacity: 1, duration: 0.35, ease: "power2.out", stagger: 0.06, delay: 0.1 },
+          {
+            opacity: 1,
+            duration: 0.35,
+            ease: "power2.out",
+            stagger: 0.06,
+            delay: 0.1,
+          },
         ),
       ]);
       upgradeImgSrcset();
     } else {
       // Reduced motion — instant
       gsap.set(
-        [scrimRef.value, toolbarRef.value, detailsRef.value, localStageEl.value],
+        [
+          scrimRef.value,
+          toolbarRef.value,
+          detailsRef.value,
+          localStageEl.value,
+        ],
         { opacity: 1 },
       );
     }
@@ -393,18 +408,26 @@ async function runOpenSequence() {
   upgradeImgSrcset();
 
   // After the FLIP, handle video audio and overlay based on what was teleported.
-  const teleportedVideo = sharedStageEl.value?.querySelector<HTMLVideoElement>("video");
+  const teleportedVideo =
+    sharedStageEl.value?.querySelector<HTMLVideoElement>("video");
   if (teleportedVideo) {
     // Card open — the actual Vid was teleported. Unmute it now that it's settled
     // in the lightbox. Do NOT spawn the overlay (the real video is already here).
     teleportedVideo.muted = false;
     if (teleportedVideo.paused) teleportedVideo.play().catch(() => {});
-  } else if (activeArtifact.value?.mediaType === "video" && activeArtifact.value.muxPlaybackId) {
+  } else if (
+    activeArtifact.value?.mediaType === "video" &&
+    activeArtifact.value.muxPlaybackId
+  ) {
     // Text-row open — only a static thumbnail was teleported. Fade in the Vid overlay.
     showVideoOverlay.value = true;
     await nextTick();
     if (videoOverlayRef.value) {
-      gsap.fromTo(videoOverlayRef.value, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" });
+      gsap.fromTo(
+        videoOverlayRef.value,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: "power2.out" },
+      );
     }
   }
 
@@ -428,7 +451,8 @@ async function handleClose() {
   isAnimating = true;
 
   // Mute any teleported video immediately — no audio leaking during close animation.
-  const teleportedVideo = sharedStageEl.value?.querySelector<HTMLVideoElement>("video");
+  const teleportedVideo =
+    sharedStageEl.value?.querySelector<HTMLVideoElement>("video");
   if (teleportedVideo) teleportedVideo.muted = true;
 
   // Resume background videos now so they appear to have never stopped,
@@ -452,7 +476,12 @@ async function handleClose() {
       if (!hasTeleport.value && !rm()) {
         // Text-row close — fade out
         await gsap.to(
-          [toolbarRef.value, detailsRef.value, localStageEl.value, scrimRef.value],
+          [
+            toolbarRef.value,
+            detailsRef.value,
+            localStageEl.value,
+            scrimRef.value,
+          ],
           { opacity: 0, duration: 0.3, ease: "power2.in", stagger: 0.04 },
         );
       }
@@ -461,8 +490,16 @@ async function handleClose() {
     }
 
     // ① Fade out details + toolbar (+ video overlay if present)
-    const fadeOutTargets = [toolbarRef.value, detailsRef.value, showVideoOverlay.value ? videoOverlayRef.value : null].filter(Boolean);
-    await gsap.to(fadeOutTargets, { opacity: 0, duration: 0.2, ease: "power2.in" });
+    const fadeOutTargets = [
+      toolbarRef.value,
+      detailsRef.value,
+      showVideoOverlay.value ? videoOverlayRef.value : null,
+    ].filter(Boolean);
+    await gsap.to(fadeOutTargets, {
+      opacity: 0,
+      duration: 0.2,
+      ease: "power2.in",
+    });
     if (showVideoOverlay.value) {
       showVideoOverlay.value = false;
       await nextTick(); // remove Vid from DOM before the FLIP measures rects
@@ -560,24 +597,17 @@ onUnmounted(() => {
   document.documentElement.classList.remove("lb-open");
 });
 
-// ─── Share ────────────────────────────────────────────────────────────────────
+// ─── Scroll to details ────────────────────────────────────────────────────────
 
-const copied = ref(false);
+const scrollRef = ref<HTMLElement | null>(null);
 
-async function copyLink() {
-  const slug = activeArtifact.value?.slug?.current;
-  if (!slug || !import.meta.client) return;
-  try {
-    await navigator.clipboard.writeText(
-      `${window.location.origin}/work/${slug}`,
-    );
-    copied.value = true;
-    setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    /* ignore */
-  }
+function scrollToDetails() {
+  if (!scrollRef.value || !detailsRef.value) return;
+  scrollRef.value.scrollTo({
+    top: detailsRef.value.offsetTop,
+    behavior: "smooth",
+  });
 }
-
 </script>
 
 <template>
@@ -593,14 +623,17 @@ async function copyLink() {
     <div ref="scrimRef" class="lb__scrim" @click="handleClose" />
 
     <!-- ② Scrollable content: stage + details stacked vertically -->
-    <div class="lb__scroll">
+    <div ref="scrollRef" class="lb__scroll">
       <!-- Stage — Teleport destination for card opens; direct media for text-row opens -->
       <div ref="localStageEl" class="lb__stage" @click.self="handleClose">
         <!-- No-teleport path: direct media (fade open, no FLIP) -->
         <template v-if="activeArtifact && !hasTeleport">
           <div class="lb-flip-root">
             <Vid
-              v-if="activeArtifact.mediaType === 'video' && activeArtifact.muxPlaybackId"
+              v-if="
+                activeArtifact.mediaType === 'video' &&
+                activeArtifact.muxPlaybackId
+              "
               :playbackId="activeArtifact.muxPlaybackId"
               preset="ambient"
               :muted="false"
@@ -636,26 +669,34 @@ async function copyLink() {
 
       <template v-if="activeArtifact">
         <div ref="detailsRef" class="lb__details">
-          <ArtifactMetaPanel :media="activeArtifact" />
-          <button class="lb__copy-link" type="button" @click="copyLink">
-            {{ copied ? "Copied!" : "copy link" }}
-          </button>
+          <Grid>
+            <Column span-mobile="12" span-laptop="4" start-laptop="5">
+              <ArtifactMetaPanel :media="activeArtifact" />
+            </Column>
+          </Grid>
         </div>
       </template>
     </div>
 
-    <!-- ③ Close button — fixed overlay, fades in after FLIP -->
+    <!-- ③ Toolbar — fixed overlay, fades in after FLIP -->
     <template v-if="activeArtifact">
       <div ref="toolbarRef" class="lb__toolbar">
-        <BaseButton
+        <button
           type="button"
-          size="small"
-          variant="ghost"
+          class="lb__pill-btn"
+          aria-label="Scroll to details"
+          @click="scrollToDetails"
+        >
+          <Iconography name="arrow" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          class="lb__pill-btn"
           aria-label="Close"
           @click="handleClose"
         >
           <Iconography name="close" aria-hidden="true" />
-        </BaseButton>
+        </button>
       </div>
     </template>
   </dialog>
@@ -712,7 +753,7 @@ async function copyLink() {
 .lb__stage {
   position: relative;
   width: 100%;
-  height: 100dvh;  // fixed — never changes regardless of content below
+  height: 100dvh; // fixed — never changes regardless of content below
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
@@ -775,38 +816,51 @@ async function copyLink() {
   }
 }
 
-// ── Close button — sits above the scroll container ───────────────────────────
+// ── Toolbar — two pill buttons, top-right corner ─────────────────────────────
 .lb__toolbar {
   position: absolute;
   top: 0;
   right: 0;
   z-index: 2;
-  padding: var(--unit-tiny);
+  display: flex;
+  gap: var(--unit-tinier);
+  align-items: center;
+  padding: var(--unit-smaller) var(--unit-small);
   pointer-events: all;
+
+  @include laptop {
+    padding: var(--unit-smaller) var(--unit-biggest);
+  }
+}
+
+.lb__pill-btn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px var(--unit-smallest);
+  border-radius: var(--unit-biggest);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  color: var(--foreground-primary);
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
 }
 
 // ── Details — below the stage, scrolls with content ─────────────────────────
 .lb__details {
   position: relative;
   z-index: 1;
-  padding: var(--unit-tinier) var(--unit-small);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
   pointer-events: all;
-}
 
-// ── Copy link — inline text link ─────────────────────────────────────────────
-.lb__copy-link {
-  appearance: none;
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  font-size: var(--caption-2);
-  color: var(--foreground-tertiary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  margin-top: var(--unit-tinier);
-  display: inline-block;
+  :deep(.grid) {
+    padding-inline: var(--grid-margin);
+  }
 }
 </style>
 

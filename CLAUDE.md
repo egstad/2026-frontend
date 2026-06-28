@@ -41,7 +41,7 @@ Both paths go through `app/assets/scripts/pages/seo.ts` (`pageSEO()`) which shap
 ### Pinia stores
 
 - **`device`** (`app/stores/device.ts`) — viewport dimensions, scroll state, input type (touch/cursor), user preferences (motion, theme). Populated entirely by client-only plugins in `app/plugins/device/`.
-- **`app`** (`app/stores/app.ts`) — `appHasLoaded`, `routeIsTransitioning`, `theme`, `autoplayVideos`.
+- **`app`** (`app/stores/app.ts`) — `appHasLoaded`, `routeIsTransitioning`, `theme`, `themeOverride` (`"system" | "light" | "dark" | "geocities"`), `autoplayVideos`. The `themeOverride` and `autoplayVideos` fields are persisted to localStorage — see **User settings** below.
 - **`artifact`** (`app/stores/artifact.ts`) — holds `randomSeed` used to deterministically shuffle the work grid. Call `reshuffle()` to re-randomize.
 
 ### Component hierarchy
@@ -79,9 +79,34 @@ Responsive breakpoint mixins (defined in `_mixins.scss`) are used as `@include t
 
 All pages call `definePageMeta({ pageTransition: pageTransitionDefault() })`. The default transition is a GSAP-driven `out-in` fade (leave: 0.4s, enter: 1s with 0.25s delay). The `app` store's `routeIsTransitioning` flag is set/cleared around transitions.
 
+### User settings
+
+A Settings modal (`SiteSettings.vue`) is opened from the primary nav in `SiteHeader.vue`. It exposes two user-controlled preferences:
+
+- **Theme** — `"system" | "light" | "dark" | "geocities"`. `"system"` resolves to the OS color-scheme preference at the time it's applied. `"geocities"` activates the egg mode (`useEggMode`) and is **not** persisted to localStorage (treated as ephemeral; next load resets to `"system"`).
+- **Autoplay videos** — boolean. Controls whether `Vid` components with `preset="ambient"` autoplay. When off, a centered play icon overlay appears on paused videos; clicking the overlay plays inline without opening the lightbox.
+
+#### Initialization priority (`autoplayVideos`)
+
+Handled entirely by `app/plugins/settings.client.ts` in this order (highest priority last):
+
+1. Store default — `true`
+2. OS reduced-motion preference (`device.userMotionReduced === true`) → `false`
+3. Saved localStorage value → always wins
+
+#### Persistence
+
+`app/plugins/settings.client.ts` reads and writes a single `"site-settings"` key in `localStorage`:
+
+```json
+{ "themeOverride": "dark", "autoplayVideos": false }
+```
+
+A `watch` on the relevant store fields writes back on every change. Plugins run alphabetically; `device/` plugins run before `settings.client.ts` (`d` < `s`), so `device.userMotionReduced` is populated before the settings plugin reads it.
+
 ### Device plugins (client-only)
 
-All six plugins in `app/plugins/device/` run client-side only and write into the `device` Pinia store: `deviceInfo` (touch/cursor/mobile detection), `deviceDimensions` (viewport/doc size, DPI), `deviceMotionPreference`, `deviceThemePreference`, `deviceScroll`, `deviceResize`. Access them via `useDeviceStore()`.
+All six plugins in `app/plugins/device/` run client-side only and write into the `device` Pinia store: `deviceInfo` (touch/cursor/mobile detection), `deviceDimensions` (viewport/doc size, DPI), `deviceMotionPreference` (sets `device.userMotionReduced` only — autoplay initialization is delegated to `settings.client.ts`), `deviceThemePreference`, `deviceScroll`, `deviceResize`. Access them via `useDeviceStore()`.
 
 ### Runtime config
 

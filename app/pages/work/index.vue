@@ -38,8 +38,8 @@ const { data: media } = await useAsyncData(
       autoplay,
       dateTaken,
       locationName,
-      camera,
-      lens,
+      "camera": camera->{ name },
+      "lens": lens->{ name },
       focalLength,
       aperture,
       shutterSpeed,
@@ -414,7 +414,7 @@ const effectiveMasonryColumns = computed(() =>
 </script>
 
 <template>
-  <Grid class="media-page mt-big">
+  <Grid class="media-page">
     <Column>
       <Transition
         appear
@@ -499,6 +499,11 @@ const effectiveMasonryColumns = computed(() =>
   min-height: 100vh;
   padding-left: var(--unit-tinier);
   padding-right: var(--unit-tinier);
+  margin-top: var(--unit-smallest);
+
+  @include tablet {
+    margin-top: var(--unit-bigger);
+  }
 }
 
 .media-results {

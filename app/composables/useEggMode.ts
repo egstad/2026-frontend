@@ -1,8 +1,9 @@
 const isActive = ref(false);
 const STYLE_ID = "egg-mode-styles";
-const TEXT_ATTR = "data-egg-text";
-const CARD_ATTR = "data-egg-card";
-const IMG_ATTR  = "data-egg-img";
+const TEXT_ATTR    = "data-egg-text";
+const CARD_ATTR    = "data-egg-card";
+const IMG_ATTR     = "data-egg-img";
+const SURFACE_ATTR = "data-egg-surface";
 
 // ─── Pools ────────────────────────────────────────────────────────────────────
 
@@ -171,6 +172,46 @@ function unpaintImages() {
   });
 }
 
+// ─── Surfaces ─────────────────────────────────────────────────────────────────
+
+const SURFACE_SELECTOR = [
+  // Sticky header
+  ".sticky-header", ".sticky-header__bar", ".sticky-header__panel", ".sticky-header__grid",
+  // Settings modal
+  ".settings", ".settings__col",
+  // Select / dropdown
+  ".select-container", ".select-wrapper", ".dropdown", ".option",
+  // Nav (HeaderNav mobile)
+  ".nav", ".nav__bar", ".nav__menu", ".nav__row",
+  // Static site header
+  ".site-header",
+  // Layout
+  ".site-wrapper", ".site-content",
+  // Generic semantic elements
+  "header", "footer", "main", "section", "article", "aside",
+].join(", ");
+
+function paintSurface(el: Element) {
+  if (el.hasAttribute(SURFACE_ATTR)) return;
+  el.setAttribute(SURFACE_ATTR, "1");
+  const s = (el as HTMLElement).style;
+  s.setProperty("background", pick(BG_PATTERNS), "important");
+  s.setProperty("border-color", randomSolid(), "important");
+}
+
+function paintSurfaces() {
+  document.querySelectorAll(SURFACE_SELECTOR).forEach(paintSurface);
+}
+
+function unpaintSurfaces() {
+  document.querySelectorAll(`[${SURFACE_ATTR}]`).forEach((el) => {
+    el.removeAttribute(SURFACE_ATTR);
+    const s = (el as HTMLElement).style;
+    s.removeProperty("background");
+    s.removeProperty("border-color");
+  });
+}
+
 // ─── Mutation observer ────────────────────────────────────────────────────────
 
 let mutationObserver: MutationObserver | null = null;
@@ -189,6 +230,8 @@ function watchForNewElements() {
         el.querySelectorAll("img").forEach((img) => {
           if (!img.hasAttribute(IMG_ATTR)) paintImages();
         });
+        if (el.matches(SURFACE_SELECTOR)) paintSurface(el);
+        el.querySelectorAll(SURFACE_SELECTOR).forEach(paintSurface);
       });
     }
   });
@@ -237,6 +280,7 @@ export function useEggMode() {
       paintAll();
       paintCards();
       paintImages();
+      paintSurfaces();
       watchForNewElements();
     } else {
       document.documentElement.classList.remove("egg-mode");
@@ -246,6 +290,7 @@ export function useEggMode() {
       unpaintAll();
       unpaintCards();
       unpaintImages();
+      unpaintSurfaces();
     }
   }
 

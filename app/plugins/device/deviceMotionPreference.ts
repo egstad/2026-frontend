@@ -9,7 +9,6 @@ export default defineNuxtPlugin((nuxtApp) => {
     mediaQuery: window.matchMedia("(prefers-reduced-motion: reduce)"),
     init() {
       window.addEventListener("reducedMotionUpdated", this.set);
-
       this.get();
       this.watch();
     },

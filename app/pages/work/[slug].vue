@@ -32,8 +32,8 @@ const {data: media} = await useAsyncData(
       autoplay,
       dateTaken,
       locationName,
-      camera,
-      lens,
+      "camera": camera->{ name },
+      "lens": lens->{ name },
       focalLength,
       aperture,
       shutterSpeed,
@@ -90,13 +90,13 @@ definePageMeta({
           <span class="meta-label">Location</span>
           <span>{{ media.locationName }}</span>
         </div>
-        <div class="meta-item" v-if="media.camera">
+        <div class="meta-item" v-if="media.camera?.name">
           <span class="meta-label">Camera</span>
-          <span>{{ media.camera }}</span>
+          <span>{{ media.camera.name }}</span>
         </div>
-        <div class="meta-item" v-if="media.lens">
+        <div class="meta-item" v-if="media.lens?.name">
           <span class="meta-label">Lens</span>
-          <span>{{ media.lens }}</span>
+          <span>{{ media.lens.name }}</span>
         </div>
         <div class="meta-item" v-if="media.focalLength || media.aperture || media.shutterSpeed || media.iso">
           <span class="meta-label">Settings</span>

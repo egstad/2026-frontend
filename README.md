@@ -5,13 +5,14 @@ This is a [Nuxt](https://nuxt.com/docs/getting-started/introduction) project whi
 - [GSAP](https://gsap.com/docs/v3/) for animations.
 - [Pinia](https://pinia.vuejs.org/introduction.html) for storing data that I share globally.
 - [SASS](https://sass-lang.com/documentation/) has been configured so `scss` and `sass` are valid within single file components.
-- A number of small plugins which help track user preferences and devie info.
+- A number of small plugins which help track user preferences and device info.
   - [`deviceInfo`](./plugins/device/deviceInfo.ts) for fetching device context info (`isMobile`, `isTouch`, etc.).
   - [`deviceDimensions`](./plugins/device/deviceDimensions.ts) for fetching device and document dimensions, screen dpi, etc.
   - [`deviceMotionPreference`](./plugins/device/deviceMotionPreference.ts) for detecting if a user prefers reduced motion or not.
   - [`deviceThemePreference`](./plugins/device/deviceThemePreference.ts) for detecting a user's preferred color theme.
   - [`deviceScroll`](./plugins/device/deviceScroll.ts) for tracking user scroll info.
   - [`deviceResize`](./plugins/device/deviceResize.ts) for tracking window resize events.
+  - [`settings.client`](./plugins/settings.client.ts) for persisting user-controlled preferences (`themeOverride`, `autoplayVideos`) to `localStorage` under the key `"site-settings"`. Also handles initialization priority: store default → OS reduced-motion preference → saved localStorage value.
 
 ## Helpful Composables/components
 

@@ -141,13 +141,13 @@ const interviews: PressItem[] = [
     date: "14 Dec. 2025",
     link: "https://www.bloomberg.com/news/newsletters/2025-12-14/the-trump-administration-frames-its-second-term-in-serif-fonts",
   },
-  {
+  /*{
     title:
       "Type Artist Who Created the Font the White House Now Uses Says 'Fuck Trump'",
     publisher: "Jezebel",
     date: "5 Dec. 2025",
     link: "https://www.jezebel.com/type-artist-who-created-the-font-the-white-house-now-uses-says-fuck-trump",
-  },
+  },*/
   {
     title: "Jordan Egstad AMA: Building for Frontier Brands like Claude",
     publisher: "YouTube",

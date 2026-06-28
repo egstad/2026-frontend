@@ -119,8 +119,8 @@ export interface Artifact extends MediaEmbedMedia {
   autoplay?: boolean
   dateTaken?: string
   locationName?: string
-  camera?: string
-  lens?: string
+  camera?: { name: string } | null
+  lens?: { name: string } | null
   focalLength?: string
   aperture?: string
   shutterSpeed?: string

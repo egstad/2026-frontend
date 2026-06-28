@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Hls from "hls.js";
+import { useAppStore } from "~/stores/app";
 
 interface Props {
   playbackId?: string; // Mux playback ID (preferred for production)
@@ -82,13 +83,15 @@ const HIDE_DELAY = 500;
 // -------------------------
 // Preset system
 // -------------------------
+const appStore = useAppStore();
+
 const presetConfigs = {
   default: { autoplay: false, muted: false, controls: true, loop: false },
   ambient: { autoplay: true, muted: true, controls: false, loop: true },
 };
 
 const effectiveAutoplay = computed(
-  () => props.autoplay ?? presetConfigs[props.preset].autoplay
+  () => (props.autoplay ?? presetConfigs[props.preset].autoplay) && appStore.autoplayVideos
 );
 const effectiveLoop = computed(
   () => props.loop ?? presetConfigs[props.preset].loop
@@ -348,10 +351,13 @@ const handleVisibilityIntersect = (entries: IntersectionObserverEntry[]) => {
       // Backstop: visible before prefetch fired (fast scroll, tiny margin, etc.)
       startLoadIfNeeded();
 
-      if (
-        videoRef.value &&
-        (wasPlayingBeforeLeave.value || effectiveAutoplay.value)
-      ) {
+      // Autoplay-driven videos respect the global setting.
+      // User-controlled videos resume regardless (user explicitly started them).
+      const shouldPlay =
+        effectiveAutoplay.value ||
+        (effectiveControls.value && wasPlayingBeforeLeave.value);
+
+      if (videoRef.value && shouldPlay) {
         videoRef.value.play().catch(() => {});
       }
       wasPlayingBeforeLeave.value = false;
@@ -365,6 +371,28 @@ const handleVisibilityIntersect = (entries: IntersectionObserverEntry[]) => {
     }
   }
 };
+
+watch(
+  () => appStore.autoplayVideos,
+  (enabled) => {
+    // Pause ambient (non-user-controlled) videos immediately when autoplay is disabled
+    if (!enabled && !effectiveControls.value && videoRef.value && !videoRef.value.paused) {
+      videoRef.value.pause();
+      wasPlayingBeforeLeave.value = false;
+    }
+  },
+);
+
+watch(
+  () => props.lockPlay,
+  (locked) => {
+    // lockPlay goes true→false when the lightbox closes; pause if autoplay is off
+    if (!locked && !effectiveAutoplay.value && videoRef.value && !videoRef.value.paused) {
+      videoRef.value.pause();
+      wasPlayingBeforeLeave.value = false;
+    }
+  },
+);
 
 // -------------------------
 // Lifecycle
@@ -500,6 +528,27 @@ onUnmounted(() => {
       </button>
     </div>
 
+    <!-- Play affordance for ambient videos when autoplay is disabled -->
+    <Transition name="vid-play">
+      <div
+        v-if="!effectiveControls && !effectiveAutoplay && !isPlaying"
+        class="vid-play-overlay"
+        aria-hidden="true"
+      >
+        <div class="vid-play-icon" @click.stop="togglePlayPause">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Loading overlay -->
     <div v-if="isLoading" class="vid-loading">
       <div class="vid-loading-spinner" />
@@ -606,6 +655,42 @@ onUnmounted(() => {
       border-color: transparent;
     }
   }
+}
+
+.vid-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.vid-play-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
+  pointer-events: auto;
+  cursor: pointer;
+  // nudge the triangle visually centered
+  padding-left: 2px;
+}
+
+.vid-play-enter-active,
+.vid-play-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.vid-play-enter-from,
+.vid-play-leave-to {
+  opacity: 0;
 }
 
 /* Caption styling */
